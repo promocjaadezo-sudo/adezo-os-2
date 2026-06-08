@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 4%;
+    --foreground: 45 20% 95%;
+    --card: 220 18% 7%;
+    --card-foreground: 45 15% 92%;
+    --popover: 220 18% 8%;
+    --popover-foreground: 45 15% 92%;
+    --primary: 42 65% 55%;
+    --primary-foreground: 220 20% 6%;
+    --secondary: 220 15% 12%;
+    --secondary-foreground: 45 15% 88%;
+    --muted: 220 14% 14%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 42 40% 18%;
+    --accent-foreground: 42 65% 70%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 14% 16%;
+    --input: 220 14% 16%;
+    --ring: 42 65% 55%;
+    --radius: 0.625rem;
+    --gold: 42 65% 55%;
+    --gold-muted: 42 30% 35%;
+    --success: 142 60% 45%;
+    --warning: 38 90% 55%;
+    --danger: 0 65% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(42 65% 55% / 0.06), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 100%, hsl(220 40% 20% / 0.15), transparent);
+    min-height: 100vh;
+  }
+
+  ::selection {
+    @apply bg-gold/30 text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-gold via-amber-200 to-gold bg-clip-text text-transparent;
+  }
+
+  .border-gold-subtle {
+    border-color: hsl(var(--gold) / 0.2);
+  }
+
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border shadow-luxury;
+  }
+
+  .luxury-divider {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-gold/30 to-transparent;
+  }
+}
