@@ -70,7 +70,7 @@ export function Sidebar({ initialUserEmail }: { initialUserEmail?: string | null
     ? NAV_ITEMS
     : NAV_ITEMS.filter((item) => item.href === "/dashboard").map((item) => ({
         ...item,
-        title: "Magda Desk",
+        title: "Panel Magdy",
       }));
 
   return (

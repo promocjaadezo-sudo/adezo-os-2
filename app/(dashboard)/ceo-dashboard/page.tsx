@@ -34,12 +34,12 @@ export default async function CeoDashboardBuild009Page() {
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
       <PageHeader
-        title="CEO Dashboard"
-        description="BUILD 009: Owner view z priorytetami sprzedaży, alertami ryzyk i operacyjnym boardem leadów."
+        title="Pulpit CEO"
+        description="BUILD 009: widok właściciela z priorytetami sprzedaży, alertami ryzyk i operacyjną tablicą Leadów."
       >
         <Link href="/sales-command-center">
           <Button variant="gold" size="sm">
-            Sales Command Center
+            Centrum Sprzedaży
             <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
@@ -47,7 +47,7 @@ export default async function CeoDashboardBuild009Page() {
 
       <KpiGrid className="lg:grid-cols-3">
         <KpiCard
-          title="CEO Score Engine"
+          title="Silnik Wyniku CEO"
           value={`${snapshot.ceoScore}/100`}
           subtitle="Zintegrowane z BUILD 008"
           variant="gold"
@@ -61,7 +61,7 @@ export default async function CeoDashboardBuild009Page() {
         <KpiCard
           title="Ryzyka operacyjne"
           value={formatNumber(snapshot.ownerAlerts.length)}
-          subtitle="Owner Alerts aktywne"
+          subtitle="Aktywne alerty właściciela"
           variant="danger"
         />
       </KpiGrid>
