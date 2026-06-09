@@ -34,7 +34,7 @@ export default async function IntegrationsHealthPage() {
         description="BUILD 026A: panel zdrowia integracji i statusów synchronizacji dla CEO."
       />
 
-      <IntegrationHealthPanel activeProvider={snapshot.activeProvider} totalRecords={snapshot.totalRecords} />
+      <IntegrationHealthPanel activeProvider={snapshot.activeProvider} totalRecords={snapshot.totalRecords} auth={snapshot.auth} />
       <SyncStatusCenter items={snapshot.items} />
 
       <div className="grid gap-6 lg:grid-cols-2">

@@ -20,9 +20,16 @@ function statusIcon(status: IntegrationUiStatus) {
 export function IntegrationHealthPanel({
   activeProvider,
   totalRecords,
+  auth,
 }: {
   activeProvider: string;
   totalRecords: number;
+  auth: {
+    currentMode: "mock" | "service_account" | "oauth_user";
+    ga4AuthStatus: string;
+    googleAdsAuthStatus: string;
+    fallbackReason: string;
+  };
 }) {
   return (
     <Card className="border-gold/20">
@@ -37,6 +44,18 @@ export function IntegrationHealthPanel({
         </p>
         <p>
           Łączna liczba rekordów: <span className="font-semibold text-foreground">{totalRecords}</span>
+        </p>
+        <p>
+          Current auth mode: <Badge variant="secondary">{auth.currentMode}</Badge>
+        </p>
+        <p className="sm:col-span-2">
+          GA4 auth status: <span className="font-medium text-foreground">{auth.ga4AuthStatus}</span>
+        </p>
+        <p className="sm:col-span-2">
+          Google Ads auth status: <span className="font-medium text-foreground">{auth.googleAdsAuthStatus}</span>
+        </p>
+        <p className="sm:col-span-2">
+          Fallback reason: <span className="font-medium text-foreground">{auth.fallbackReason}</span>
         </p>
       </CardContent>
     </Card>

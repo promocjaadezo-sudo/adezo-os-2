@@ -1,4 +1,9 @@
-import { createAdsProvider, createAnalyticsProvider, resolveAnalyticsAdsConnectorConfig } from "@/lib/providers/analytics-ads";
+import {
+  createAdsProvider,
+  createAnalyticsProvider,
+  resolveAnalyticsAdsConnectorConfig,
+  resolveOAuthConnectorStrategy,
+} from "@/lib/providers/analytics-ads";
 import { getProviderStatus } from "@/lib/providers/data-provider";
 import { GoogleSheetsProvider } from "@/lib/providers/data-provider/google-sheets-provider";
 import { MockProvider } from "@/lib/providers/data-provider/mock-provider";
@@ -21,6 +26,12 @@ export interface IntegrationHealthSnapshot {
   lastSyncAt: string;
   totalRecords: number;
   items: IntegrationHealthItem[];
+  auth: {
+    currentMode: "mock" | "service_account" | "oauth_user";
+    ga4AuthStatus: string;
+    googleAdsAuthStatus: string;
+    fallbackReason: string;
+  };
 }
 
 function latestSync(items: IntegrationHealthItem[]): string {
@@ -32,6 +43,7 @@ function latestSync(items: IntegrationHealthItem[]): string {
 
 export async function getIntegrationHealthSnapshot(): Promise<IntegrationHealthSnapshot> {
   const config = resolveAnalyticsAdsConnectorConfig();
+  const strategy = resolveOAuthConnectorStrategy(config);
 
   const analyticsProvider = createAnalyticsProvider();
   const adsProvider = createAdsProvider();
@@ -134,5 +146,11 @@ export async function getIntegrationHealthSnapshot(): Promise<IntegrationHealthS
     lastSyncAt: latestSync(items),
     totalRecords: items.reduce((sum, item) => sum + item.records, 0),
     items,
+    auth: {
+      currentMode: strategy.currentMode,
+      ga4AuthStatus: `${strategy.ga4.status.authStatus}: ${strategy.ga4.status.reason}`,
+      googleAdsAuthStatus: `${strategy.googleAds.status.authStatus}: ${strategy.googleAds.status.reason}`,
+      fallbackReason: strategy.fallbackReason,
+    },
   };
 }

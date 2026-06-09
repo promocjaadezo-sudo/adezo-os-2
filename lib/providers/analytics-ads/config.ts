@@ -1,7 +1,13 @@
+import { resolveGoogleAuthConfig } from "./google-auth-config";
+import type { CredentialsMode } from "./credentials-mode-switch";
+
 export interface AnalyticsAdsConnectorConfig {
   useRealApis: boolean;
+  credentialsMode: CredentialsMode;
   ga4LiveEnabled: boolean;
   googleAdsLiveEnabled: boolean;
+  googleOAuthConnected: boolean;
+  googleOAuthOwnerEmail: string;
   ga4PropertyId: string;
   ga4ServiceAccountEmail: string;
   ga4CredentialsPath: string;
@@ -17,11 +23,15 @@ export interface AnalyticsAdsConnectorConfig {
 export function resolveAnalyticsAdsConnectorConfig(): AnalyticsAdsConnectorConfig {
   const ga4PropertyId = (process.env.ADEZO_GA4_PROPERTY_ID || "444299463").trim();
   const ga4ServiceAccountEmail = (process.env.ADEZO_GA4_SERVICE_ACCOUNT_EMAIL || "").trim();
+  const auth = resolveGoogleAuthConfig();
 
   return {
     useRealApis: (process.env.ADEZO_USE_REAL_APIS || "false").toLowerCase() === "true",
+    credentialsMode: auth.requestedMode,
     ga4LiveEnabled: (process.env.ADEZO_GA4_LIVE_ENABLED || "true").toLowerCase() === "true",
     googleAdsLiveEnabled: (process.env.ADEZO_GOOGLE_ADS_LIVE_ENABLED || "false").toLowerCase() === "true",
+    googleOAuthConnected: auth.oauthConnected,
+    googleOAuthOwnerEmail: auth.ownerEmail,
     ga4PropertyId,
     ga4ServiceAccountEmail,
     ga4CredentialsPath: (process.env.GOOGLE_APPLICATION_CREDENTIALS || "").trim(),
