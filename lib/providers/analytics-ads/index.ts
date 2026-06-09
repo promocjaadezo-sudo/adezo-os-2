@@ -5,6 +5,7 @@ import { Ga4LiveProvider } from "./ga4-live-provider";
 import { resolveAnalyticsAdsConnectorConfig } from "./config";
 import { AttributionEngine } from "./engines/attribution-engine";
 import { CampaignSyncEngine } from "./engines/campaign-sync-engine";
+import { ConversionAuditEngine } from "./engines/conversion-audit-engine";
 import { ConversionSyncEngine } from "./engines/conversion-sync-engine";
 
 export function createAnalyticsProvider() {
@@ -39,6 +40,10 @@ export function createConversionSyncEngine() {
 
 export function createAttributionEngine() {
   return new AttributionEngine();
+}
+
+export function createConversionAuditEngine() {
+  return new ConversionAuditEngine();
 }
 
 export * from "./types";

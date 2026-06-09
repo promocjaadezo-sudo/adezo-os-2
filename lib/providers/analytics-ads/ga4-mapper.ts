@@ -49,6 +49,7 @@ const LEAD_EVENTS = new Set([
   "form_submit",
   "premium_form_submit",
   "phone_call_lead",
+  "consultation_request",
   "formularz_start",
   "file_download",
   "click",

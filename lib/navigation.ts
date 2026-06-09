@@ -98,6 +98,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: "BUILD 026A Monitoring statusów integracji",
   },
   {
+    title: "Conversion Audit",
+    href: "/conversion-audit",
+    icon: "LineChart",
+    description: "BUILD 028 Audyt konwersji i wycieków lejka",
+  },
+  {
     title: "Dashboard CEO",
     href: "/dashboard",
     icon: "LayoutDashboard",
