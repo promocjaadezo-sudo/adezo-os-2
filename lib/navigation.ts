@@ -104,6 +104,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: "BUILD 028 Audyt konwersji i wycieków lejka",
   },
   {
+    title: "Tirana Performance",
+    href: "/landing-tirana-performance",
+    icon: "LineChart",
+    description: "BUILD 029 Monitoring skuteczności landingu Tirana",
+  },
+  {
     title: "Dashboard CEO",
     href: "/dashboard",
     icon: "LayoutDashboard",
