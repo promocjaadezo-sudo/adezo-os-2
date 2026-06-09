@@ -92,6 +92,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: "BUILD 014A Dyscyplina danych leadów",
   },
   {
+    title: "Zdrowie Integracji",
+    href: "/integrations-health",
+    icon: "ShieldAlert",
+    description: "BUILD 026A Monitoring statusów integracji",
+  },
+  {
     title: "Dashboard CEO",
     href: "/dashboard",
     icon: "LayoutDashboard",
