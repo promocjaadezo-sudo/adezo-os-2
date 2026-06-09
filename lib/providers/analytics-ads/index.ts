@@ -1,5 +1,6 @@
 import { Ga4AnalyticsProvider } from "./analytics-provider";
 import { GoogleAdsProvider } from "./ads-provider";
+import { GoogleAdsLiveProvider } from "./ads-live-provider";
 import { Ga4LiveProvider } from "./ga4-live-provider";
 import { resolveAnalyticsAdsConnectorConfig } from "./config";
 import { AttributionEngine } from "./engines/attribution-engine";
@@ -18,7 +19,14 @@ export function createAnalyticsProvider() {
 }
 
 export function createAdsProvider() {
-  return new GoogleAdsProvider();
+  const fallback = new GoogleAdsProvider();
+  const config = resolveAnalyticsAdsConnectorConfig();
+
+  if (config.useRealApis && config.googleAdsLiveEnabled) {
+    return new GoogleAdsLiveProvider(fallback);
+  }
+
+  return fallback;
 }
 
 export function createCampaignSyncEngine() {

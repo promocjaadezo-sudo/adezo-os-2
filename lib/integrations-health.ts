@@ -68,7 +68,7 @@ export async function getIntegrationHealthSnapshot(): Promise<IntegrationHealthS
         ? "CONNECTED"
         : "FALLBACK";
 
-  const adsState: IntegrationUiStatus = !config.useRealApis || !adsStatus.configured
+  const adsState: IntegrationUiStatus = !config.useRealApis || !config.googleAdsLiveEnabled
     ? "DISABLED"
     : adsStatus.syncState === "error"
       ? "ERROR"
@@ -101,7 +101,7 @@ export async function getIntegrationHealthSnapshot(): Promise<IntegrationHealthS
       key: "google-ads",
       name: "Google Ads",
       status: adsState,
-      active: config.useRealApis,
+      active: config.useRealApis && config.googleAdsLiveEnabled,
       lastSyncAt: adsStatus.lastSyncAt,
       records: adsCampaigns.length + adsConversions.length,
       lastError: adsStatus.errors[0] || "-",

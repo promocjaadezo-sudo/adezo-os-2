@@ -1,6 +1,7 @@
 export interface AnalyticsAdsConnectorConfig {
   useRealApis: boolean;
   ga4LiveEnabled: boolean;
+  googleAdsLiveEnabled: boolean;
   ga4PropertyId: string;
   ga4ServiceAccountEmail: string;
   ga4CredentialsPath: string;
@@ -8,6 +9,9 @@ export interface AnalyticsAdsConnectorConfig {
   ga4PrivateKey: string;
   googleAdsCustomerId: string;
   googleAdsDeveloperToken: string;
+  googleAdsClientId: string;
+  googleAdsClientSecret: string;
+  googleAdsRefreshToken: string;
 }
 
 export function resolveAnalyticsAdsConnectorConfig(): AnalyticsAdsConnectorConfig {
@@ -17,12 +21,16 @@ export function resolveAnalyticsAdsConnectorConfig(): AnalyticsAdsConnectorConfi
   return {
     useRealApis: (process.env.ADEZO_USE_REAL_APIS || "false").toLowerCase() === "true",
     ga4LiveEnabled: (process.env.ADEZO_GA4_LIVE_ENABLED || "true").toLowerCase() === "true",
+    googleAdsLiveEnabled: (process.env.ADEZO_GOOGLE_ADS_LIVE_ENABLED || "false").toLowerCase() === "true",
     ga4PropertyId,
     ga4ServiceAccountEmail,
     ga4CredentialsPath: (process.env.GOOGLE_APPLICATION_CREDENTIALS || "").trim(),
     ga4ClientEmail: (process.env.GOOGLE_CLIENT_EMAIL || ga4ServiceAccountEmail).trim(),
     ga4PrivateKey: (process.env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n").trim(),
-    googleAdsCustomerId: (process.env.ADEZO_GOOGLE_ADS_CUSTOMER_ID || "").trim(),
-    googleAdsDeveloperToken: (process.env.ADEZO_GOOGLE_ADS_DEVELOPER_TOKEN || "").trim(),
+    googleAdsCustomerId: (process.env.GOOGLE_ADS_CUSTOMER_ID || process.env.ADEZO_GOOGLE_ADS_CUSTOMER_ID || "").trim(),
+    googleAdsDeveloperToken: (process.env.GOOGLE_ADS_DEVELOPER_TOKEN || process.env.ADEZO_GOOGLE_ADS_DEVELOPER_TOKEN || "").trim(),
+    googleAdsClientId: (process.env.GOOGLE_ADS_CLIENT_ID || "").trim(),
+    googleAdsClientSecret: (process.env.GOOGLE_ADS_CLIENT_SECRET || "").trim(),
+    googleAdsRefreshToken: (process.env.GOOGLE_ADS_REFRESH_TOKEN || "").trim(),
   };
 }

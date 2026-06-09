@@ -28,13 +28,20 @@ export interface AnalyticsSession {
 }
 
 export interface CampaignSyncRecord {
+  id?: string;
   date: string;
   campaignId: string;
   campaignName: string;
+  campaignStatus?: string;
   platform: "Google Ads";
   impressions: number;
   clicks: number;
   cost: number;
+  conversions?: number;
+  conversionValue?: number;
+  cpc?: number;
+  ctr?: number;
+  costPerConversion?: number;
 }
 
 export interface ConversionSyncRecord {
