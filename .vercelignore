@@ -1,0 +1,15 @@
+# Large local data and docs not needed for Preview runtime
+crm/
+Księgi Marki ADEZO Europe 2030/
+scripts/
+Code.gs
+NASZE_MODELE_PREMIUM_SPEC.md
+build-output.log
+server.log
+
+# Local build and dependencies
+.next/
+node_modules/
+
+# VCS
+.git/
