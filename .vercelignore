@@ -1,6 +1,4 @@
 # Large local data and docs not needed for Preview runtime
-crm/*
-!crm/ADEZO_OS_2_0_BUILD034K_CRM_CLEANUP_FINAL_NEW.xlsx
 Księgi Marki ADEZO Europe 2030/
 scripts/
 Code.gs
