@@ -1,7 +1,5 @@
-import { createAnalyticsProvider } from "@/lib/providers/analytics-ads";
-import { deriveGa4LeadMetrics } from "@/lib/providers/analytics-ads/lead-metrics";
-import { calculateForecast } from "@/lib/operating-model/helpers";
 import { getProviderStore } from "@/lib/providers/data-provider";
+import { createRevenueTruthLayerSnapshot } from "@/lib/revenue-truth-layer";
 
 export interface RevenueGapAnalyzer {
   plan: number;
@@ -74,22 +72,17 @@ export interface Build015Snapshot {
 }
 
 export async function createBuild015Snapshot(): Promise<Build015Snapshot> {
-  const analyticsProvider = createAnalyticsProvider();
-  const ga4Conversions = await analyticsProvider.getConversions("last7days");
-  const ga4Leads7d = deriveGa4LeadMetrics(ga4Conversions);
-  const store = await getProviderStore();
+  const [store, truth] = await Promise.all([getProviderStore(), createRevenueTruthLayerSnapshot()]);
 
-  const plan = store.forecasts[0]?.revenuePlan || 0;
-  const forecastCalc = calculateForecast(store.offers);
-  const sold = forecastCalc.sold;
-  const forecast = forecastCalc.forecast;
-  const gap = Math.max(0, plan - forecast);
+  const plan = truth.summary.plan;
+  const sold = truth.summary.revenue;
+  const forecast = Math.max(sold, plan - truth.summary.gapToPlan);
+  const gap = truth.summary.gapToPlan;
   const willDeliverPlan = forecast >= plan;
 
-  const leadCount = Math.max(store.leads.length, ga4Leads7d.lead_count);
-  const offerCount = store.offers.length;
-  const wonOffers = store.offers.filter((offer) => offer.status === "won");
-  const salesCount = wonOffers.length;
+  const leadCount = truth.summary.leads;
+  const offerCount = truth.summary.offers;
+  const salesCount = truth.summary.sales;
   const pipelineValue = store.offers
     .filter((offer) => offer.status !== "won" && offer.status !== "lost")
     .reduce((sum, offer) => sum + offer.value, 0);
@@ -114,7 +107,7 @@ export async function createBuild015Snapshot(): Promise<Build015Snapshot> {
     riskLevel: "medium",
     confidenceDrivers: [
       "Spadek HOT lead rate względem poprzedniego tygodnia.",
-      `Lead_count 7d (${ga4Leads7d.lead_count.toFixed(0)}) poniżej oczekiwań planu.`,
+      `GA4 lead_count (${truth.summary.ga4LeadCount.toFixed(0)}) poniżej oczekiwań planu.`,
       `Konwersja lead->oferta ${leadToOfferRate.toFixed(1)}%, oferta->sprzedaż ${offerToSaleRate.toFixed(1)}%.`,
     ],
   };

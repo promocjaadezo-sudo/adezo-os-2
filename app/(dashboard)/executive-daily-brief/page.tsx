@@ -12,6 +12,7 @@ import { TopRevenueOpportunities } from "@/components/build020/top-revenue-oppor
 import { CeoFinalRecommendation } from "@/components/build020/ceo-final-recommendation";
 import { ProviderStatusPanel } from "@/components/data/provider-status-panel";
 import { CrmDataQualityPanel } from "@/components/data/crm-data-quality-panel";
+import { RevenueTruthPanel } from "@/components/data/revenue-truth-panel";
 import { createBuild020Snapshot } from "@/lib/build020";
 import { getProviderStatus } from "@/lib/providers/data-provider";
 
@@ -64,7 +65,9 @@ export default async function ExecutiveDailyBriefPage() {
 
       <ProviderStatusPanel status={providerStatus} />
 
-  <CrmDataQualityPanel status={providerStatus} kpis={snapshot.crmKpis} />
+      <CrmDataQualityPanel status={providerStatus} kpis={snapshot.crmKpis} />
+
+      <RevenueTruthPanel snapshot={snapshot.revenueTruth} />
 
       <CeoFinalRecommendation recommendation={snapshot.finalRecommendation} />
     </div>

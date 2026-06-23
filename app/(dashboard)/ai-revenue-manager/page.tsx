@@ -9,7 +9,9 @@ import { AiRecommendationsEngine } from "@/components/build015/ai-recommendation
 import { NextBestActionGenerator } from "@/components/build015/next-best-action-generator";
 import { PlanRecoverySimulator } from "@/components/build015/plan-recovery-simulator";
 import { RevenueRiskCenter } from "@/components/build015/revenue-risk-center";
+import { RevenueTruthPanel } from "@/components/data/revenue-truth-panel";
 import { createBuild015Snapshot } from "@/lib/build015";
+import { createRevenueTruthLayerSnapshot } from "@/lib/revenue-truth-layer";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,10 @@ export default async function AiRevenueManagerPage() {
     redirect("/dashboard");
   }
 
-  const snapshot = await createBuild015Snapshot();
+  const [snapshot, revenueTruth] = await Promise.all([
+    createBuild015Snapshot(),
+    createRevenueTruthLayerSnapshot(),
+  ]);
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
@@ -53,6 +58,8 @@ export default async function AiRevenueManagerPage() {
       </div>
 
       <RevenueRiskCenter risks={snapshot.revenueRisks} />
+
+      <RevenueTruthPanel snapshot={revenueTruth} />
 
       <PlanRecoverySimulator scenarios={snapshot.recoveryScenarios} />
     </div>

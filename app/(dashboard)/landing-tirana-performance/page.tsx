@@ -5,10 +5,12 @@ import { TiranaFunnelBoard } from "@/components/tirana-performance/tirana-funnel
 import { TiranaBudgetImpact } from "@/components/tirana-performance/tirana-budget-impact";
 import { TiranaLeadQualityPanel } from "@/components/tirana-performance/tirana-lead-quality-panel";
 import { TiranaNextDecisionBox } from "@/components/tirana-performance/tirana-next-decision-box";
+import { RevenueTruthPanel } from "@/components/data/revenue-truth-panel";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { getLandingTiranaPerformanceSnapshot } from "@/lib/landing-tirana-performance";
 import { getPreviewDataModeLabel, isPreviewTestModeEnabled } from "@/lib/preview-test-mode";
+import { createRevenueTruthLayerSnapshot } from "@/lib/revenue-truth-layer";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,10 @@ export default async function LandingTiranaPerformancePage() {
     redirect("/dashboard");
   }
 
-  const snapshot = await getLandingTiranaPerformanceSnapshot();
+  const [snapshot, revenueTruth] = await Promise.all([
+    getLandingTiranaPerformanceSnapshot(),
+    createRevenueTruthLayerSnapshot(),
+  ]);
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
@@ -55,6 +60,8 @@ export default async function LandingTiranaPerformancePage() {
         <TiranaBudgetImpact snapshot={snapshot} />
         <TiranaNextDecisionBox snapshot={snapshot} />
       </div>
+
+      <RevenueTruthPanel snapshot={revenueTruth} />
     </div>
   );
 }

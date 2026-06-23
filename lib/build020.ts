@@ -4,10 +4,7 @@ import {
   getExecutiveNumbers,
   getTopRevenueOpportunities,
 } from "@/lib/operating-model";
-import { calculateForecast } from "@/lib/operating-model/helpers";
-import { getProviderStore } from "@/lib/providers/data-provider";
-import { createAnalyticsProvider } from "@/lib/providers/analytics-ads";
-import { deriveGa4LeadMetrics } from "@/lib/providers/analytics-ads/lead-metrics";
+import { createRevenueTruthLayerSnapshot, type RevenueTruthSnapshot } from "@/lib/revenue-truth-layer";
 
 export interface ExecutivePlanStatus {
   plan: number;
@@ -62,6 +59,7 @@ export interface RevenueOpportunity {
 
 export interface Build020Snapshot {
   planStatus: ExecutivePlanStatus;
+  revenueTruth: RevenueTruthSnapshot;
   crmKpis: {
     leads: number;
     offers: number;
@@ -80,26 +78,22 @@ export interface Build020Snapshot {
 }
 
 export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
-  const analyticsProvider = createAnalyticsProvider();
-  const ga4Conversions = await analyticsProvider.getConversions("last7days");
-  const ga4Leads7d = deriveGa4LeadMetrics(ga4Conversions);
-  const store = await getProviderStore();
+  const [executiveNumbers, campaignRows, opportunities, dataSummary, truth] = await Promise.all([
+    getExecutiveNumbers(),
+    getCampaignRoiDecisionRows(),
+    getTopRevenueOpportunities(3),
+    getDataCompletenessSummary(),
+    createRevenueTruthLayerSnapshot(),
+  ]);
 
-  const executiveNumbers = await getExecutiveNumbers();
-  const campaignRows = await getCampaignRoiDecisionRows();
-  const opportunities = await getTopRevenueOpportunities(3);
-  const dataSummary = await getDataCompletenessSummary();
-
-  const salesOffers = store.offers.filter((offer) => offer.status === "won");
-  const sold = salesOffers.reduce((sum, offer) => sum + offer.value, 0);
-  const forecastCalc = calculateForecast(store.offers);
-  const plan = store.forecasts[0]?.revenuePlan || executiveNumbers.plan;
-  const forecast = forecastCalc.forecast;
+  const plan = truth.summary.plan || executiveNumbers.plan;
+  const sold = truth.summary.revenue;
+  const forecast = Math.max(executiveNumbers.forecast, sold);
   const gap = Math.max(0, plan - forecast);
 
-  const leadsCount = store.leads.length;
-  const offersCount = store.offers.length;
-  const salesCount = salesOffers.length;
+  const leadsCount = truth.summary.leads;
+  const offersCount = truth.summary.offers;
+  const salesCount = truth.summary.sales;
 
   const worstCampaign = campaignRows
     .filter((row) => row.cps >= row.cost || row.sales === 0)
@@ -119,13 +113,14 @@ export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
           ? `Domykamy lukę ${gap.toLocaleString("pl-PL")} zł przez follow-upy ofert i korektę kampanii Tirana.`
           : "Plan jest dowieziony. Utrzymujemy tempo i jakość leadów.",
     },
+    revenueTruth: truth,
     crmKpis: {
       leads: leadsCount,
       offers: offersCount,
       sales: salesCount,
       salesValue: sold,
       forecast,
-      ga4LeadCount7d: ga4Leads7d.lead_count,
+      ga4LeadCount7d: truth.summary.ga4LeadCount,
     },
     todayActions: [
       {
@@ -158,7 +153,7 @@ export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
       topGapCauses: [
         `CRM: leady ${leadsCount}, oferty ${offersCount}, sprzedaże ${salesCount}`,
         `Wartość sprzedaży: ${sold.toLocaleString("pl-PL")} zł`,
-        `GA4 lead_count 7d: ${ga4Leads7d.lead_count.toFixed(0)}`,
+        `GA4 lead_count: ${truth.summary.ga4LeadCount.toFixed(0)}`,
       ],
       action:
         gap > 0
@@ -175,7 +170,7 @@ export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
       {
         campaign: worstCampaign?.campaignName ?? "Kampania do korekty",
         issue: "Wysoki CPL i niski wynik sprzedażowy",
-        decision: `Przesuń budżet do kampanii Tirana z najwyższym ROI (GA4 lead_form+lead_tel: ${(ga4Leads7d.lead_form + ga4Leads7d.lead_tel).toFixed(0)}).`,
+        decision: `Przesuń budżet do kampanii Tirana z najwyższym ROI (Revenue Truth ROAS: ${truth.summary.roas.toFixed(2)}).`,
         owner: "CEO",
       },
     ],

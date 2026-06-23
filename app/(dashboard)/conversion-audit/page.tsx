@@ -4,10 +4,12 @@ import { ConversionHealthPanel } from "@/components/conversion-audit/conversion-
 import { ConversionDropAlerts } from "@/components/conversion-audit/conversion-drop-alerts";
 import { LeadEventMonitor } from "@/components/conversion-audit/lead-event-monitor";
 import { LandingTiranaTracker } from "@/components/conversion-audit/landing-tirana-tracker";
+import { RevenueTruthPanel } from "@/components/data/revenue-truth-panel";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { getConversionAuditSnapshot } from "@/lib/conversion-audit";
 import { getPreviewDataModeLabel, isPreviewTestModeEnabled } from "@/lib/preview-test-mode";
+import { createRevenueTruthLayerSnapshot } from "@/lib/revenue-truth-layer";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +29,10 @@ export default async function ConversionAuditPage() {
     redirect("/dashboard");
   }
 
-  const snapshot = await getConversionAuditSnapshot();
+  const [snapshot, revenueTruth] = await Promise.all([
+    getConversionAuditSnapshot(),
+    createRevenueTruthLayerSnapshot(),
+  ]);
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
@@ -51,6 +56,8 @@ export default async function ConversionAuditPage() {
       </div>
 
       <LeadEventMonitor events={snapshot.events} />
+
+      <RevenueTruthPanel snapshot={revenueTruth} />
     </div>
   );
 }
