@@ -1,5 +1,7 @@
 import { createAnalyticsProvider } from "@/lib/providers/analytics-ads";
 import { deriveGa4LeadMetrics } from "@/lib/providers/analytics-ads/lead-metrics";
+import { calculateForecast } from "@/lib/operating-model/helpers";
+import { getProviderStore } from "@/lib/providers/data-provider";
 
 export interface RevenueGapAnalyzer {
   plan: number;
@@ -75,12 +77,25 @@ export async function createBuild015Snapshot(): Promise<Build015Snapshot> {
   const analyticsProvider = createAnalyticsProvider();
   const ga4Conversions = await analyticsProvider.getConversions("last7days");
   const ga4Leads7d = deriveGa4LeadMetrics(ga4Conversions);
+  const store = await getProviderStore();
 
-  const plan = 400000;
-  const sold = 235000;
-  const forecast = 348000;
+  const plan = store.forecasts[0]?.revenuePlan || 0;
+  const forecastCalc = calculateForecast(store.offers);
+  const sold = forecastCalc.sold;
+  const forecast = forecastCalc.forecast;
   const gap = Math.max(0, plan - forecast);
   const willDeliverPlan = forecast >= plan;
+
+  const leadCount = Math.max(store.leads.length, ga4Leads7d.lead_count);
+  const offerCount = store.offers.length;
+  const wonOffers = store.offers.filter((offer) => offer.status === "won");
+  const salesCount = wonOffers.length;
+  const pipelineValue = store.offers
+    .filter((offer) => offer.status !== "won" && offer.status !== "lost")
+    .reduce((sum, offer) => sum + offer.value, 0);
+
+  const leadToOfferRate = leadCount > 0 ? (offerCount / leadCount) * 100 : 0;
+  const offerToSaleRate = offerCount > 0 ? (salesCount / offerCount) * 100 : 0;
 
   const gapAnalyzer: RevenueGapAnalyzer = {
     plan,
@@ -88,8 +103,10 @@ export async function createBuild015Snapshot(): Promise<Build015Snapshot> {
     forecast,
     gap,
     willDeliverPlan,
-    primaryCause: "Za mało leadów jakościowych z GA4.",
-    missingWhat: `GA4 lead_count 7d: ${ga4Leads7d.lead_count.toFixed(0)} (form ${ga4Leads7d.lead_form.toFixed(0)}, tel ${ga4Leads7d.lead_tel.toFixed(0)}, email ${ga4Leads7d.lead_email.toFixed(0)}, messenger ${ga4Leads7d.lead_messenger.toFixed(0)}).`,
+    primaryCause: "Konwersja lead->oferta lub oferta->sprzedaż poniżej celu.",
+    missingWhat:
+      `Lead->Offer: ${leadToOfferRate.toFixed(1)}%, Offer->Sale: ${offerToSaleRate.toFixed(1)}%, ` +
+      `Pipeline: ${pipelineValue.toLocaleString("pl-PL")} zł, luka do planu: ${gap.toLocaleString("pl-PL")} zł.`,
   };
 
   const confidence: ForecastConfidenceEngine = {
@@ -98,7 +115,7 @@ export async function createBuild015Snapshot(): Promise<Build015Snapshot> {
     confidenceDrivers: [
       "Spadek HOT lead rate względem poprzedniego tygodnia.",
       `Lead_count 7d (${ga4Leads7d.lead_count.toFixed(0)}) poniżej oczekiwań planu.`,
-      "Część ofert czeka na follow-up > 3 dni.",
+      `Konwersja lead->oferta ${leadToOfferRate.toFixed(1)}%, oferta->sprzedaż ${offerToSaleRate.toFixed(1)}%.`,
     ],
   };
 
@@ -108,9 +125,9 @@ export async function createBuild015Snapshot(): Promise<Build015Snapshot> {
       ? "Dowieziemy plan miesiąca przy utrzymaniu bieżącego tempa."
       : "Nie dowieziemy planu bez natychmiastowych działań sprzedażowo-marketingowych.",
     whyNot: [
-      "Za mało leadów jakościowych (form/tel/email/messenger).",
-      "Za mało pomiarów.",
-      "Za mało follow-upów.",
+      `Leady->oferty: ${leadToOfferRate.toFixed(1)}%`,
+      `Oferty->sprzedaże: ${offerToSaleRate.toFixed(1)}%`,
+      `Pipeline aktywny: ${pipelineValue.toLocaleString("pl-PL")} zł`,
     ],
   };
 

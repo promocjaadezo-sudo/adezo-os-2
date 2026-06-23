@@ -4,6 +4,8 @@ import {
   getExecutiveNumbers,
   getTopRevenueOpportunities,
 } from "@/lib/operating-model";
+import { calculateForecast } from "@/lib/operating-model/helpers";
+import { getProviderStore } from "@/lib/providers/data-provider";
 import { createAnalyticsProvider } from "@/lib/providers/analytics-ads";
 import { deriveGa4LeadMetrics } from "@/lib/providers/analytics-ads/lead-metrics";
 
@@ -60,6 +62,14 @@ export interface RevenueOpportunity {
 
 export interface Build020Snapshot {
   planStatus: ExecutivePlanStatus;
+  crmKpis: {
+    leads: number;
+    offers: number;
+    sales: number;
+    salesValue: number;
+    forecast: number;
+    ga4LeadCount7d: number;
+  };
   todayActions: CriticalAction[];
   revenueGap: RevenueGapSummary;
   marketingDecisions: MarketingDecision[];
@@ -73,20 +83,29 @@ export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
   const analyticsProvider = createAnalyticsProvider();
   const ga4Conversions = await analyticsProvider.getConversions("last7days");
   const ga4Leads7d = deriveGa4LeadMetrics(ga4Conversions);
+  const store = await getProviderStore();
 
   const executiveNumbers = await getExecutiveNumbers();
   const campaignRows = await getCampaignRoiDecisionRows();
   const opportunities = await getTopRevenueOpportunities(3);
   const dataSummary = await getDataCompletenessSummary();
 
-  const plan = executiveNumbers.plan;
-  const sold = executiveNumbers.sold;
-  const forecast = executiveNumbers.forecast;
-  const gap = executiveNumbers.gap;
+  const salesOffers = store.offers.filter((offer) => offer.status === "won");
+  const sold = salesOffers.reduce((sum, offer) => sum + offer.value, 0);
+  const forecastCalc = calculateForecast(store.offers);
+  const plan = store.forecasts[0]?.revenuePlan || executiveNumbers.plan;
+  const forecast = forecastCalc.forecast;
+  const gap = Math.max(0, plan - forecast);
+
+  const leadsCount = store.leads.length;
+  const offersCount = store.offers.length;
+  const salesCount = salesOffers.length;
 
   const worstCampaign = campaignRows
     .filter((row) => row.cps >= row.cost || row.sales === 0)
     .sort((left, right) => right.cpl - left.cpl)[0];
+
+  const status: ExecutivePlanStatus["status"] = gap > 0 ? "RYZYKO, ALE DO ODROBIENIA" : "PLAN DOWIEZIONY";
 
   return {
     planStatus: {
@@ -94,21 +113,32 @@ export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
       sold,
       forecast,
       gap,
-      status: "RYZYKO, ALE DO ODROBIENIA",
-      decision: "Domykamy lukę 29 000 zł przez premium follow-upy i korektę kampanii Tirana jeszcze dziś.",
+      status,
+      decision:
+        gap > 0
+          ? `Domykamy lukę ${gap.toLocaleString("pl-PL")} zł przez follow-upy ofert i korektę kampanii Tirana.`
+          : "Plan jest dowieziony. Utrzymujemy tempo i jakość leadów.",
+    },
+    crmKpis: {
+      leads: leadsCount,
+      offers: offersCount,
+      sales: salesCount,
+      salesValue: sold,
+      forecast,
+      ga4LeadCount7d: ga4Leads7d.lead_count,
     },
     todayActions: [
       {
         owner: "Magda 1",
-        task: "4 follow-upy ofert premium",
+        task: `Follow-up ofert (${offersCount} aktywnych)`,
         priority: "highest",
-        actionNow: "Zadzwoń do 4 klientów premium przed 14:00.",
+        actionNow: "Zadzwoń do najwyżej rokujących ofert przed 14:00.",
       },
       {
         owner: "Magda 2",
-        task: "3 telefony HOT",
+        task: `Kontakt do leadów (${leadsCount} łącznie)`,
         priority: "highest",
-        actionNow: "Kontakt do 3 HOT leadów w oknie <2h.",
+        actionNow: "Kontakt do nowych leadów w oknie <2h.",
       },
       {
         owner: "Marketing",
@@ -124,13 +154,16 @@ export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
       },
     ],
     revenueGap: {
-      missing: 29000,
+      missing: gap,
       topGapCauses: [
-        "3 oferty premium bez follow-upu > 3 dni",
-        "1 kampania z wysokim CPL bez sprzedaży",
-        `spadek tempa kontaktu leadów (GA4 lead_count 7d: ${ga4Leads7d.lead_count.toFixed(0)})`,
+        `CRM: leady ${leadsCount}, oferty ${offersCount}, sprzedaże ${salesCount}`,
+        `Wartość sprzedaży: ${sold.toLocaleString("pl-PL")} zł`,
+        `GA4 lead_count 7d: ${ga4Leads7d.lead_count.toFixed(0)}`,
       ],
-      action: "Dzisiaj: domknąć min. 1 ofertę premium i odzyskać 2 zaległe follow-upy, aby zredukować lukę do <10k.",
+      action:
+        gap > 0
+          ? "Dzisiaj: zwiększyć konwersję oferta->sprzedaż i domknąć najwyższe wartościowo oferty."
+          : "Plan dowieziony: utrzymaj jakość pipeline i monitoruj nowe leady.",
     },
     marketingDecisions: [
       {
@@ -197,6 +230,10 @@ export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
       decision: item.nextBestAction,
     })),
     finalRecommendation:
-      "Plan jest zagrożony, ale odrabialny: wykonaj 4 działania krytyczne dzisiaj, przesuń budżet na Tirana i zamknij minimum 1 top szansę do końca dnia.",
+      `CRM+GA4: leady ${leadsCount}, oferty ${offersCount}, sprzedaże ${salesCount}, ` +
+      `sprzedaż ${sold.toLocaleString("pl-PL")} zł, forecast ${forecast.toLocaleString("pl-PL")} zł. ` +
+      (gap > 0
+        ? `Brakuje ${gap.toLocaleString("pl-PL")} zł do planu — priorytet to domknięcia ofert i follow-up.`
+        : "Plan bez luki — utrzymuj pipeline i stabilny dopływ leadów."),
   };
 }

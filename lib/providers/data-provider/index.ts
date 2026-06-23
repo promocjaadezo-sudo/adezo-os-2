@@ -1,4 +1,5 @@
 import { CsvProvider } from "./csv-provider";
+import { ExcelCrmProvider } from "./excel-crm-provider";
 import { FirebaseProvider } from "./firebase-provider";
 import { GoogleSheetsProvider } from "./google-sheets-provider";
 import { MockProvider } from "./mock-provider";
@@ -7,7 +8,7 @@ import type { DataProvider, DataProviderName, DataProviderStatus } from "./types
 
 function resolveProviderName(): DataProviderName {
   const value = (process.env.ADEZO_DATA_PROVIDER || "mock").toLowerCase();
-  if (value === "csv" || value === "google-sheets" || value === "supabase" || value === "firebase") {
+  if (value === "csv" || value === "google-sheets" || value === "supabase" || value === "firebase" || value === "excel-crm") {
     return value;
   }
   return "mock";
@@ -15,6 +16,7 @@ function resolveProviderName(): DataProviderName {
 
 function createProvider(name: DataProviderName): DataProvider {
   if (name === "csv") return new CsvProvider();
+  if (name === "excel-crm") return new ExcelCrmProvider();
   if (name === "google-sheets") return new GoogleSheetsProvider();
   if (name === "supabase") return new SupabaseProvider();
   if (name === "firebase") return new FirebaseProvider();

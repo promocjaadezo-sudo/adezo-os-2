@@ -11,6 +11,7 @@ import { DataDisciplineAlertModule } from "@/components/build020/data-discipline
 import { TopRevenueOpportunities } from "@/components/build020/top-revenue-opportunities";
 import { CeoFinalRecommendation } from "@/components/build020/ceo-final-recommendation";
 import { ProviderStatusPanel } from "@/components/data/provider-status-panel";
+import { CrmDataQualityPanel } from "@/components/data/crm-data-quality-panel";
 import { createBuild020Snapshot } from "@/lib/build020";
 import { getProviderStatus } from "@/lib/providers/data-provider";
 
@@ -62,6 +63,8 @@ export default async function ExecutiveDailyBriefPage() {
       </div>
 
       <ProviderStatusPanel status={providerStatus} />
+
+  <CrmDataQualityPanel status={providerStatus} kpis={snapshot.crmKpis} />
 
       <CeoFinalRecommendation recommendation={snapshot.finalRecommendation} />
     </div>
