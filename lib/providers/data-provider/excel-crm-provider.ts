@@ -59,24 +59,11 @@ function rowText(row: unknown[], index: number): string | undefined {
   return text || undefined;
 }
 
-function canReadFile(filePath: string): boolean {
-  return existsSync(filePath);
-}
-
 function resolveCrmFilePath(): string {
   const envPath = process.env.ADEZO_EXCEL_CRM_FILE;
   if (envPath && envPath.trim()) {
     const normalized = envPath.trim();
-    const candidates = [
-      isAbsolute(normalized) ? normalized : resolve(process.cwd(), normalized),
-      normalized,
-    ];
-
-    for (const candidate of candidates) {
-      if (canReadFile(candidate)) return candidate;
-    }
-
-    throw new Error(`Cannot access file ${normalized}`);
+    return isAbsolute(normalized) ? normalized : resolve(process.cwd(), normalized);
   }
 
   const crmDir = join(process.cwd(), "crm");
@@ -87,13 +74,7 @@ function resolveCrmFilePath(): string {
 
   const preferred = candidates.find((name) => name.includes("BUILD034K_CRM_CLEANUP_FINAL_NEW")) || candidates[0];
   if (!preferred) throw new Error("Brak pliku CRM Excel (.xlsx) w katalogu crm.");
-
-  const filePath = join(crmDir, preferred);
-  if (!canReadFile(filePath)) {
-    throw new Error(`Cannot access file ${filePath}`);
-  }
-
-  return filePath;
+  return join(crmDir, preferred);
 }
 
 function findHeaderRow(rows: unknown[][]): number {
