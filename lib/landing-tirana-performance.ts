@@ -3,13 +3,15 @@ import { getProviderStore } from "@/lib/providers/data-provider";
 import type { AnalyticsAdsProviderStatus, DateRange } from "@/lib/providers/analytics-ads";
 import type { CampaignSyncRecord, ConversionSyncRecord, AnalyticsSession } from "@/lib/providers/analytics-ads";
 import type { OperatingDataStore } from "@/lib/operating-model/types";
+import { deriveGa4LeadMetrics } from "@/lib/providers/analytics-ads/lead-metrics";
 
 type TrackedEventName =
   | "formularz_start"
-  | "form_submit"
-  | "premium_form_submit"
-  | "generate_lead"
-  | "phone_call_lead";
+  | "lead_count"
+  | "lead_form"
+  | "lead_tel"
+  | "lead_email"
+  | "lead_messenger";
 
 export type TiranaAlertKind =
   | "LANDING PROBLEM"
@@ -156,12 +158,15 @@ export async function getLandingTiranaPerformanceSnapshot(): Promise<TiranaPerfo
   const sessions7d = sumTraffic(sessionsRows14d, range7d);
   const sessions14dTotal = sumTraffic(sessionsRows14d, range14d);
 
+  const leadMetrics14d = deriveGa4LeadMetrics(conversions14d, range14d);
+
   const eventStats = {
     formularz_start: sumConversions(conversions14d, "formularz_start", range14d),
-    form_submit: sumConversions(conversions14d, "form_submit", range14d),
-    premium_form_submit: sumConversions(conversions14d, "premium_form_submit", range14d),
-    generate_lead: sumConversions(conversions14d, "generate_lead", range14d),
-    phone_call_lead: sumConversions(conversions14d, "phone_call_lead", range14d),
+    lead_count: leadMetrics14d.lead_count,
+    lead_form: leadMetrics14d.lead_form,
+    lead_tel: leadMetrics14d.lead_tel,
+    lead_email: leadMetrics14d.lead_email,
+    lead_messenger: leadMetrics14d.lead_messenger,
   };
 
   const funnel = computeStoreFunnel(store, range14d);
@@ -183,7 +188,7 @@ export async function getLandingTiranaPerformanceSnapshot(): Promise<TiranaPerfo
 
   const alerts: TiranaAlert[] = [];
 
-  const leadSignals = eventStats.generate_lead + eventStats.premium_form_submit + eventStats.form_submit + eventStats.phone_call_lead;
+  const leadSignals = eventStats.lead_count;
 
   if (sessions14dTotal > 0 && leadSignals <= 0) {
     alerts.push({
@@ -193,7 +198,7 @@ export async function getLandingTiranaPerformanceSnapshot(): Promise<TiranaPerfo
     });
   }
 
-  if (eventStats.formularz_start > 0 && eventStats.form_submit + eventStats.premium_form_submit <= 0) {
+  if (eventStats.formularz_start > 0 && eventStats.lead_form <= 0) {
     alerts.push({
       id: "form-friction",
       kind: "FORM FRICTION",

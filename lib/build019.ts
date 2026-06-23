@@ -1,4 +1,6 @@
 import { getCampaignDerivedMetrics } from "@/lib/operating-model";
+import { createAnalyticsProvider } from "@/lib/providers/analytics-ads";
+import { deriveGa4LeadMetrics } from "@/lib/providers/analytics-ads/lead-metrics";
 
 export type CampaignModel = "Tirana" | "Astana" | "Chaga" | "Waleta";
 
@@ -249,6 +251,10 @@ function createAgencyPanel(campaigns: CampaignRecord[], roiBoard: CampaignRoiRow
 }
 
 export async function createBuild019Snapshot(): Promise<Build019Snapshot> {
+  const analyticsProvider = createAnalyticsProvider();
+  const ga4Conversions = await analyticsProvider.getConversions("last7days");
+  const ga4Leads7d = deriveGa4LeadMetrics(ga4Conversions);
+
   const derivedMetrics = await getCampaignDerivedMetrics();
   const campaigns: CampaignRecord[] = derivedMetrics.map((metrics) => ({
     id: metrics.campaignId,
@@ -300,6 +306,7 @@ export async function createBuild019Snapshot(): Promise<Build019Snapshot> {
     monthlyPlanImpact:
       `Top kampania: ${topCampaign?.campaignName ?? "—"}. ` +
       `Łączny przychód przypisany do kampanii: ${pipelineRevenue.toLocaleString("pl-PL")} zł. ` +
+      `GA4 lead_count 7d: ${ga4Leads7d.lead_count.toFixed(0)} (form: ${ga4Leads7d.lead_form.toFixed(0)}, tel: ${ga4Leads7d.lead_tel.toFixed(0)}, email: ${ga4Leads7d.lead_email.toFixed(0)}, messenger: ${ga4Leads7d.lead_messenger.toFixed(0)}). ` +
       "Przesunięcie budżetu do kampanii z ROAS>5 zwiększa szansę dowiezienia planu miesiąca.",
   };
 }

@@ -26,7 +26,7 @@ export default async function AiRevenueManagerPage() {
     redirect("/dashboard");
   }
 
-  const snapshot = createBuild015Snapshot();
+  const snapshot = await createBuild015Snapshot();
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">

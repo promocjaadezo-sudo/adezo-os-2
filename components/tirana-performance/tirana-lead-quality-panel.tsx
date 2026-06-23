@@ -11,7 +11,7 @@ export function TiranaLeadQualityPanel({ snapshot }: { snapshot: TiranaPerforman
         <div className="rounded-lg border border-border/70 bg-background/40 p-3">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Leady (eventy)</p>
           <p className="mt-2 text-lg font-semibold text-foreground">
-            {(snapshot.events.generate_lead + snapshot.events.form_submit + snapshot.events.premium_form_submit).toFixed(0)}
+            {snapshot.events.lead_count.toFixed(0)}
           </p>
         </div>
         <div className="rounded-lg border border-border/70 bg-background/40 p-3">

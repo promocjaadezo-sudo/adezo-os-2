@@ -4,8 +4,11 @@ import type { TiranaPerformanceSnapshot } from "@/lib/landing-tirana-performance
 export function TiranaFunnelBoard({ snapshot }: { snapshot: TiranaPerformanceSnapshot }) {
   const stages = [
     { label: "Formularz Start", value: snapshot.events.formularz_start },
-    { label: "Submit (Form + Premium)", value: snapshot.events.form_submit + snapshot.events.premium_form_submit },
-    { label: "Generate Lead", value: snapshot.events.generate_lead },
+    { label: "Lead Form", value: snapshot.events.lead_form },
+    { label: "Lead Tel", value: snapshot.events.lead_tel },
+    { label: "Lead Email", value: snapshot.events.lead_email },
+    { label: "Lead Messenger", value: snapshot.events.lead_messenger },
+    { label: "Lead Count", value: snapshot.events.lead_count },
     { label: "HOT Leady", value: snapshot.funnel.hotLeads },
     { label: "Oferty", value: snapshot.funnel.offers },
     { label: "Sprzedaże", value: snapshot.funnel.sales },

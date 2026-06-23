@@ -1,3 +1,6 @@
+import { createAnalyticsProvider } from "@/lib/providers/analytics-ads";
+import { deriveGa4LeadMetrics } from "@/lib/providers/analytics-ads/lead-metrics";
+
 export interface RevenueGapAnalyzer {
   plan: number;
   sold: number;
@@ -68,7 +71,11 @@ export interface Build015Snapshot {
   }>;
 }
 
-export function createBuild015Snapshot(): Build015Snapshot {
+export async function createBuild015Snapshot(): Promise<Build015Snapshot> {
+  const analyticsProvider = createAnalyticsProvider();
+  const ga4Conversions = await analyticsProvider.getConversions("last7days");
+  const ga4Leads7d = deriveGa4LeadMetrics(ga4Conversions);
+
   const plan = 400000;
   const sold = 235000;
   const forecast = 348000;
@@ -81,8 +88,8 @@ export function createBuild015Snapshot(): Build015Snapshot {
     forecast,
     gap,
     willDeliverPlan,
-    primaryCause: "Za mało HOT leadów.",
-    missingWhat: "Brakuje HOT leadów, pomiarów i follow-upów domykających.",
+    primaryCause: "Za mało leadów jakościowych z GA4.",
+    missingWhat: `GA4 lead_count 7d: ${ga4Leads7d.lead_count.toFixed(0)} (form ${ga4Leads7d.lead_form.toFixed(0)}, tel ${ga4Leads7d.lead_tel.toFixed(0)}, email ${ga4Leads7d.lead_email.toFixed(0)}, messenger ${ga4Leads7d.lead_messenger.toFixed(0)}).`,
   };
 
   const confidence: ForecastConfidenceEngine = {
@@ -90,7 +97,7 @@ export function createBuild015Snapshot(): Build015Snapshot {
     riskLevel: "medium",
     confidenceDrivers: [
       "Spadek HOT lead rate względem poprzedniego tygodnia.",
-      "Za mało pomiarów do leadów premium.",
+      `Lead_count 7d (${ga4Leads7d.lead_count.toFixed(0)}) poniżej oczekiwań planu.`,
       "Część ofert czeka na follow-up > 3 dni.",
     ],
   };
@@ -101,7 +108,7 @@ export function createBuild015Snapshot(): Build015Snapshot {
       ? "Dowieziemy plan miesiąca przy utrzymaniu bieżącego tempa."
       : "Nie dowieziemy planu bez natychmiastowych działań sprzedażowo-marketingowych.",
     whyNot: [
-      "Za mało HOT leadów.",
+      "Za mało leadów jakościowych (form/tel/email/messenger).",
       "Za mało pomiarów.",
       "Za mało follow-upów.",
     ],

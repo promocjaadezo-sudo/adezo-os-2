@@ -4,6 +4,8 @@ import {
   getExecutiveNumbers,
   getTopRevenueOpportunities,
 } from "@/lib/operating-model";
+import { createAnalyticsProvider } from "@/lib/providers/analytics-ads";
+import { deriveGa4LeadMetrics } from "@/lib/providers/analytics-ads/lead-metrics";
 
 export interface ExecutivePlanStatus {
   plan: number;
@@ -68,6 +70,10 @@ export interface Build020Snapshot {
 }
 
 export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
+  const analyticsProvider = createAnalyticsProvider();
+  const ga4Conversions = await analyticsProvider.getConversions("last7days");
+  const ga4Leads7d = deriveGa4LeadMetrics(ga4Conversions);
+
   const executiveNumbers = await getExecutiveNumbers();
   const campaignRows = await getCampaignRoiDecisionRows();
   const opportunities = await getTopRevenueOpportunities(3);
@@ -122,7 +128,7 @@ export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
       topGapCauses: [
         "3 oferty premium bez follow-upu > 3 dni",
         "1 kampania z wysokim CPL bez sprzedaży",
-        "spadek tempa kontaktu HOT leadów",
+        `spadek tempa kontaktu leadów (GA4 lead_count 7d: ${ga4Leads7d.lead_count.toFixed(0)})`,
       ],
       action: "Dzisiaj: domknąć min. 1 ofertę premium i odzyskać 2 zaległe follow-upy, aby zredukować lukę do <10k.",
     },
@@ -136,7 +142,7 @@ export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
       {
         campaign: worstCampaign?.campaignName ?? "Kampania do korekty",
         issue: "Wysoki CPL i niski wynik sprzedażowy",
-        decision: "Wstrzymaj kampanię i popraw target",
+        decision: `Przesuń budżet do kampanii Tirana z najwyższym ROI (GA4 lead_form+lead_tel: ${(ga4Leads7d.lead_form + ga4Leads7d.lead_tel).toFixed(0)}).`,
         owner: "CEO",
       },
     ],

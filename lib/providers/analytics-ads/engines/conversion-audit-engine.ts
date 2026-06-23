@@ -1,14 +1,15 @@
-import type { AdsProvider, AnalyticsProvider, AnalyticsAdsProviderStatus, DateRange } from "../types";
+import type {
+  AdsProvider,
+  AnalyticsProvider,
+  AnalyticsAdsProviderStatus,
+  ConversionSyncRecord,
+  DateRange,
+} from "../types";
+import { deriveGa4LeadMetrics, getCanonicalLeadEventNames } from "../lead-metrics";
 
 export const AUDIT_EVENTS = [
-  "generate_lead",
-  "premium_form_submit",
-  "form_submit",
-  "phone_call_lead",
-  "consultation_request",
+  ...getCanonicalLeadEventNames(),
   "formularz_start",
-  "file_download",
-  "click",
 ] as const;
 
 export type AuditEventName = (typeof AUDIT_EVENTS)[number];
@@ -55,12 +56,6 @@ export interface ConversionAuditSnapshot {
   };
 }
 
-interface ConversionRecord {
-  date: string;
-  conversionName: string;
-  value: number;
-}
-
 interface SessionRecord {
   date: string;
   landingPage?: string;
@@ -93,7 +88,7 @@ function isInRange(date: string, range: DateRange): boolean {
   return date >= range.from && date <= range.to;
 }
 
-function sumEvent(records: ConversionRecord[], eventName: string, range: DateRange): number {
+function sumEvent(records: ConversionSyncRecord[], eventName: string, range: DateRange): number {
   return records
     .filter((record) => record.conversionName === eventName && isInRange(record.date, range))
     .reduce((sum, record) => sum + (record.value || 0), 0);
@@ -126,14 +121,18 @@ export class ConversionAuditEngine {
       params.adsProvider.getCampaigns(range7d),
     ]);
 
-    const conversionRows = conversions14d as ConversionRecord[];
+    const conversionRows = conversions14d;
     const sessionRows = sessions7d as SessionRecord[];
     const campaignRows = campaigns7d as CampaignRecord[];
 
+    const lead24h = deriveGa4LeadMetrics(conversionRows, range24h);
+    const lead7d = deriveGa4LeadMetrics(conversionRows, range7d);
+    const leadPrev7d = deriveGa4LeadMetrics(conversionRows, rangePrev7d);
+
     const events: LeadEventStat[] = AUDIT_EVENTS.map((eventName) => {
-      const count24h = sumEvent(conversionRows, eventName, range24h);
-      const count7d = sumEvent(conversionRows, eventName, range7d);
-      const countPrev7d = sumEvent(conversionRows, eventName, rangePrev7d);
+      const count24h = eventName === "lead_count" ? lead24h.lead_count : sumEvent(conversionRows, eventName, range24h);
+      const count7d = eventName === "lead_count" ? lead7d.lead_count : sumEvent(conversionRows, eventName, range7d);
+      const countPrev7d = eventName === "lead_count" ? leadPrev7d.lead_count : sumEvent(conversionRows, eventName, rangePrev7d);
       const dropPct = calculateDrop(count7d, countPrev7d);
 
       return {
@@ -145,12 +144,7 @@ export class ConversionAuditEngine {
       };
     });
 
-    const leads7d =
-      sumEvent(conversionRows, "generate_lead", range7d) +
-      sumEvent(conversionRows, "premium_form_submit", range7d) +
-      sumEvent(conversionRows, "form_submit", range7d) +
-      sumEvent(conversionRows, "consultation_request", range7d) +
-      sumEvent(conversionRows, "phone_call_lead", range7d);
+    const leads7d = lead7d.lead_count;
 
     const adsCost7d = campaignRows.reduce((sum, row) => sum + (row.cost || 0), 0);
 
@@ -160,21 +154,21 @@ export class ConversionAuditEngine {
 
     const alerts: ConversionAuditAlert[] = [];
 
-    if (sumEvent(conversionRows, "generate_lead", range24h) <= 0) {
+    if (lead24h.lead_count <= 0) {
       alerts.push({
-        id: "warning-generate-lead-24h",
+        id: "warning-lead-count-24h",
         type: "WARNING",
-        title: "Brak generate_lead przez 24h",
-        description: "GA4 nie zarejestrował eventu generate_lead w ostatnich 24 godzinach.",
+        title: "Brak leadów przez 24h",
+        description: "GA4 nie zarejestrował leadów (lead_count / komponenty leadowe) w ostatnich 24 godzinach.",
       });
     }
 
-    if (sumEvent(conversionRows, "formularz_start", range7d) > 0 && sumEvent(conversionRows, "form_submit", range7d) <= 0) {
+    if (sumEvent(conversionRows, "formularz_start", range7d) > 0 && lead7d.lead_form <= 0) {
       alerts.push({
         id: "funnel-leak-form",
         type: "FUNNEL LEAK",
         title: "Wykryto wyciek lejka formularza",
-        description: "Są eventy formularz_start, ale brak form_submit w ostatnich 7 dniach.",
+        description: "Są eventy formularz_start, ale brak lead_form w ostatnich 7 dniach.",
       });
     }
 
@@ -187,24 +181,24 @@ export class ConversionAuditEngine {
       });
     }
 
-    const premium7d = sumEvent(conversionRows, "premium_form_submit", range7d);
-    const premiumPrev7d = sumEvent(conversionRows, "premium_form_submit", rangePrev7d);
-    const premiumDrop = calculateDrop(premium7d, premiumPrev7d);
+    const leadForm7d = lead7d.lead_form;
+    const leadFormPrev7d = leadPrev7d.lead_form;
+    const premiumDrop = calculateDrop(leadForm7d, leadFormPrev7d);
 
-    if (premiumPrev7d > 0 && premiumDrop > 40) {
+    if (leadFormPrev7d > 0 && premiumDrop > 40) {
       alerts.push({
-        id: "drop-alert-premium-form-submit",
+        id: "drop-alert-lead-form",
         type: "DROP ALERT",
-        title: "Spadek premium_form_submit > 40%",
+        title: "Spadek lead_form > 40%",
         description: `Spadek wynosi ${premiumDrop.toFixed(1)}% vs poprzednie 7 dni.`,
       });
     }
 
-    if (sumEvent(conversionRows, "phone_call_lead", range7d) <= 0) {
+    if (lead7d.lead_tel <= 0) {
       alerts.push({
         id: "phone-tracking-warning",
         type: "PHONE TRACKING WARNING",
-        title: "Brak phone_call_lead przez 7 dni",
+        title: "Brak lead_tel przez 7 dni",
         description: "Sprawdź poprawność śledzenia połączeń telefonicznych.",
       });
     }

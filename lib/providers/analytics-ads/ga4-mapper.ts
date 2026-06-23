@@ -1,4 +1,5 @@
 import type { AnalyticsSession, ConversionSyncRecord } from "./types";
+import { isSupportedGa4LeadOrFunnelEvent } from "./lead-metrics";
 
 interface Ga4RunReportRow {
   dimensionValues?: Array<{ value?: string }>;
@@ -44,17 +45,6 @@ export function mapGa4SessionsResponse(raw: unknown): AnalyticsSession[] {
   });
 }
 
-const LEAD_EVENTS = new Set([
-  "generate_lead",
-  "form_submit",
-  "premium_form_submit",
-  "phone_call_lead",
-  "consultation_request",
-  "formularz_start",
-  "file_download",
-  "click",
-]);
-
 export function mapGa4ConversionsResponse(raw: unknown): ConversionSyncRecord[] {
   const response = raw as Ga4RunReportResponse;
   const rows = response.rows || [];
@@ -75,5 +65,5 @@ export function mapGa4ConversionsResponse(raw: unknown): ConversionSyncRecord[] 
         campaignName: dimensions[3]?.value || undefined,
       } satisfies ConversionSyncRecord;
     })
-    .filter((record) => LEAD_EVENTS.has(record.conversionName));
+    .filter((record) => isSupportedGa4LeadOrFunnelEvent(record.conversionName));
 }
