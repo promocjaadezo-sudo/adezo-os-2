@@ -24,6 +24,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
 
+function normalizeText(value?: string | null): string {
+  return (value || "").toLowerCase();
+}
+
 function getSalespersonName(email?: string): string {
   if (!email) return "Handlowiec";
   const normalized = email.toLowerCase();
@@ -49,7 +53,7 @@ export default async function DashboardPage() {
     // Znajdź handlowca w bazie danych
     const activeSalesperson = data.salespeople.find((sp: Salesperson) => 
       (sp.email && sp.email.toLowerCase() === email.toLowerCase()) || 
-      (sp.name.toLowerCase() === spName.toLowerCase())
+      (normalizeText(sp.name) === normalizeText(spName))
     );
     const spId = activeSalesperson?.id;
 
@@ -71,8 +75,8 @@ export default async function DashboardPage() {
     );
 
     const aktywneOferty = mojeOferty.filter((o) => 
-      !o.status.toLowerCase().includes("wygr") && 
-      !o.status.toLowerCase().includes("przegr")
+      !normalizeText(o.status).includes("wygr") && 
+      !normalizeText(o.status).includes("przegr")
     );
 
     const sumaWartosciOfert = aktywneOferty.reduce((sum, o) => sum + Number(o.value || 0), 0);
