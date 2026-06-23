@@ -127,7 +127,10 @@ export async function getIntegrationHealthSnapshot(): Promise<IntegrationHealthS
       lastSyncAt: mockStatus.lastSyncAt,
       records: mockStatus.recordCounts.total,
       lastError: mockStatus.errors[0] || "-",
-      detail: mockStatus.message,
+      detail:
+        activeDataStatus.resolvedProvider === "mock" && activeDataStatus.errors[0]
+          ? `Fallback source error: ${activeDataStatus.errors[0]}`
+          : mockStatus.message,
     },
     {
       key: "google-sheets",
