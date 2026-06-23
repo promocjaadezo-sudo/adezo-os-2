@@ -1,5 +1,5 @@
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
+import { accessSync, constants, readdirSync } from "node:fs";
+import { isAbsolute, join, resolve } from "node:path";
 import * as XLSX from "xlsx";
 import { calculateLeadScore, calculateLeadTemperature, calculateForecast } from "@/lib/operating-model/helpers";
 import { getOperatingStore } from "@/lib/operating-model/mock-store";
@@ -59,9 +59,30 @@ function rowText(row: unknown[], index: number): string | undefined {
   return text || undefined;
 }
 
+function canReadFile(filePath: string): boolean {
+  try {
+    accessSync(filePath, constants.R_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function resolveCrmFilePath(): string {
   const envPath = process.env.ADEZO_EXCEL_CRM_FILE;
-  if (envPath && envPath.trim()) return envPath.trim();
+  if (envPath && envPath.trim()) {
+    const normalized = envPath.trim();
+    const candidates = [
+      isAbsolute(normalized) ? normalized : resolve(process.cwd(), normalized),
+      normalized,
+    ];
+
+    for (const candidate of candidates) {
+      if (canReadFile(candidate)) return candidate;
+    }
+
+    throw new Error(`Cannot access file ${normalized}`);
+  }
 
   const crmDir = join(process.cwd(), "crm");
   const candidates = readdirSync(crmDir)
@@ -71,7 +92,13 @@ function resolveCrmFilePath(): string {
 
   const preferred = candidates.find((name) => name.includes("BUILD034K_CRM_CLEANUP_FINAL_NEW")) || candidates[0];
   if (!preferred) throw new Error("Brak pliku CRM Excel (.xlsx) w katalogu crm.");
-  return join(crmDir, preferred);
+
+  const filePath = join(crmDir, preferred);
+  if (!canReadFile(filePath)) {
+    throw new Error(`Cannot access file ${filePath}`);
+  }
+
+  return filePath;
 }
 
 function findHeaderRow(rows: unknown[][]): number {
