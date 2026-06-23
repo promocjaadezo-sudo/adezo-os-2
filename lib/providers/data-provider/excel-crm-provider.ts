@@ -1,5 +1,5 @@
 import { accessSync, constants, readdirSync } from "node:fs";
-import { isAbsolute, join, resolve } from "node:path";
+import { basename, isAbsolute, join, resolve } from "node:path";
 import * as XLSX from "xlsx";
 import { calculateLeadScore, calculateLeadTemperature, calculateForecast } from "@/lib/operating-model/helpers";
 import { getOperatingStore } from "@/lib/operating-model/mock-store";
@@ -68,6 +68,39 @@ function canReadFile(filePath: string): boolean {
   }
 }
 
+function findFileByName(rootDir: string, fileName: string, depth = 0): string | null {
+  if (depth > 6) return null;
+
+  try {
+    const entries = readdirSync(rootDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = join(rootDir, entry.name);
+
+      if (entry.isFile() && entry.name === fileName && canReadFile(fullPath)) {
+        return fullPath;
+      }
+
+      if (entry.isDirectory() && entry.name !== "node_modules" && entry.name !== ".git") {
+        const nested = findFileByName(fullPath, fileName, depth + 1);
+        if (nested) return nested;
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function findRuntimeFile(fileName: string): string | null {
+  const roots = [process.cwd(), join(process.cwd(), ".next"), "/var/task", "/var/task/.next"];
+  for (const root of roots) {
+    const found = findFileByName(root, fileName);
+    if (found) return found;
+  }
+  return null;
+}
+
 function resolveCrmFilePath(): string {
   const envPath = process.env.ADEZO_EXCEL_CRM_FILE;
   if (envPath && envPath.trim()) {
@@ -80,6 +113,9 @@ function resolveCrmFilePath(): string {
     for (const candidate of candidates) {
       if (canReadFile(candidate)) return candidate;
     }
+
+    const discovered = findRuntimeFile(basename(normalized));
+    if (discovered) return discovered;
 
     throw new Error(`Cannot access file ${normalized}`);
   }
@@ -95,6 +131,8 @@ function resolveCrmFilePath(): string {
 
   const filePath = join(crmDir, preferred);
   if (!canReadFile(filePath)) {
+    const discovered = findRuntimeFile(preferred);
+    if (discovered) return discovered;
     throw new Error(`Cannot access file ${filePath}`);
   }
 
