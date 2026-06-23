@@ -92,6 +92,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: "BUILD 033 Automated Revenue Brief Engine",
   },
   {
+    title: "Task Execution",
+    href: "/task-execution",
+    icon: "CalendarClock",
+    description: "BUILD 034 Task Execution Engine",
+  },
+  {
     title: "Dyscyplina Danych",
     href: "/data-discipline",
     icon: "ShieldAlert",

@@ -3,6 +3,7 @@ const TEST_ROUTES = [
   "/conversion-audit",
   "/landing-tirana-performance",
   "/automated-revenue-brief",
+  "/task-execution",
 ] as const;
 
 function normalizePathname(pathname: string): string {
