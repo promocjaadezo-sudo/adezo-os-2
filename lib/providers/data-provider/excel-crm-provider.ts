@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import * as XLSX from "xlsx";
 import { calculateLeadScore, calculateLeadTemperature, calculateForecast } from "@/lib/operating-model/helpers";
@@ -191,7 +191,8 @@ export class ExcelCrmProvider implements DataProvider {
 
     try {
       const filePath = resolveCrmFilePath();
-      const workbook = XLSX.readFile(filePath, { cellDates: true });
+      const workbookBuffer = readFileSync(filePath);
+      const workbook = XLSX.read(workbookBuffer, { type: "buffer", cellDates: true });
       const crmSheet = workbook.Sheets["CRM_MAGDY"] || workbook.Sheets[workbook.SheetNames[0]];
       if (!crmSheet) {
         throw new Error("Nie znaleziono arkusza CRM_MAGDY w pliku CRM.");
