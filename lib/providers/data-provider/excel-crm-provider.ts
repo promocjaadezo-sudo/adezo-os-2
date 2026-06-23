@@ -270,7 +270,15 @@ export class ExcelCrmProvider implements DataProvider {
           return "n/a";
         }
       })();
-      const detailedMessage = `${message} | cwd=${cwd} | crmDirExists=${crmDirExists ? "yes" : "no"} | cwdEntries=${cwdEntries}`;
+      const crmEntries = (() => {
+        if (!crmDirExists) return "n/a";
+        try {
+          return readdirSync(crmDirPath).slice(0, 20).join(", ") || "(empty)";
+        } catch {
+          return "n/a";
+        }
+      })();
+      const detailedMessage = `${message} | cwd=${cwd} | crmDirExists=${crmDirExists ? "yes" : "no"} | cwdEntries=${cwdEntries} | crmEntries=${crmEntries}`;
       const fallbackReason = classifyCrmFallbackReason(message);
       const fallbackReasonLabel =
         fallbackReason === "missing-file"
