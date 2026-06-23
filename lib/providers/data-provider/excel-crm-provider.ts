@@ -1,4 +1,4 @@
-import { accessSync, constants, existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import * as XLSX from "xlsx";
 import { calculateLeadScore, calculateLeadTemperature, calculateForecast } from "@/lib/operating-model/helpers";
@@ -60,12 +60,7 @@ function rowText(row: unknown[], index: number): string | undefined {
 }
 
 function canReadFile(filePath: string): boolean {
-  try {
-    accessSync(filePath, constants.R_OK);
-    return true;
-  } catch {
-    return false;
-  }
+  return existsSync(filePath);
 }
 
 function resolveCrmFilePath(): string {
