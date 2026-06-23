@@ -86,6 +86,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: "BUILD 020 Poranny ekran dowodzenia CEO",
   },
   {
+    title: "Automated Brief",
+    href: "/automated-revenue-brief",
+    icon: "Award",
+    description: "BUILD 033 Automated Revenue Brief Engine",
+  },
+  {
     title: "Dyscyplina Danych",
     href: "/data-discipline",
     icon: "ShieldAlert",

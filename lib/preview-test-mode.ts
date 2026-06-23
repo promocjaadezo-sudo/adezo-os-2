@@ -2,6 +2,7 @@ const TEST_ROUTES = [
   "/integrations-health",
   "/conversion-audit",
   "/landing-tirana-performance",
+  "/automated-revenue-brief",
 ] as const;
 
 function normalizePathname(pathname: string): string {
