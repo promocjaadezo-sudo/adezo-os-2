@@ -13,7 +13,9 @@ import { CeoFinalRecommendation } from "@/components/build020/ceo-final-recommen
 import { ProviderStatusPanel } from "@/components/data/provider-status-panel";
 import { CrmDataQualityPanel } from "@/components/data/crm-data-quality-panel";
 import { RevenueTruthPanel } from "@/components/data/revenue-truth-panel";
+import { HotLeadPriorityBoard } from "@/components/data/hot-lead-priority-board";
 import { createBuild020Snapshot } from "@/lib/build020";
+import { createHotLeadResponseSnapshot } from "@/lib/hot-lead-response-engine";
 import { getProviderStatus } from "@/lib/providers/data-provider";
 
 export const dynamic = "force-dynamic";
@@ -31,8 +33,11 @@ export default async function ExecutiveDailyBriefPage() {
     redirect("/dashboard");
   }
 
-  const snapshot = await createBuild020Snapshot();
-  const providerStatus = await getProviderStatus();
+  const [snapshot, providerStatus, hotLeadSnapshot] = await Promise.all([
+    createBuild020Snapshot(),
+    getProviderStatus(),
+    createHotLeadResponseSnapshot(),
+  ]);
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
@@ -68,6 +73,8 @@ export default async function ExecutiveDailyBriefPage() {
       <CrmDataQualityPanel status={providerStatus} kpis={snapshot.crmKpis} />
 
       <RevenueTruthPanel snapshot={snapshot.revenueTruth} />
+
+      <HotLeadPriorityBoard snapshot={hotLeadSnapshot} />
 
       <CeoFinalRecommendation recommendation={snapshot.finalRecommendation} />
     </div>

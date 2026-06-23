@@ -98,6 +98,12 @@ export const NAV_ITEMS: NavItem[] = [
     description: "BUILD 034 Task Execution Engine",
   },
   {
+    title: "Hot Lead Response",
+    href: "/hot-lead-response",
+    icon: "Users",
+    description: "BUILD 035 HOT Lead Response Engine",
+  },
+  {
     title: "Dyscyplina Danych",
     href: "/data-discipline",
     icon: "ShieldAlert",

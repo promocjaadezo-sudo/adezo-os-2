@@ -10,7 +10,9 @@ import { NextBestActionGenerator } from "@/components/build015/next-best-action-
 import { PlanRecoverySimulator } from "@/components/build015/plan-recovery-simulator";
 import { RevenueRiskCenter } from "@/components/build015/revenue-risk-center";
 import { RevenueTruthPanel } from "@/components/data/revenue-truth-panel";
+import { HotLeadPriorityBoard } from "@/components/data/hot-lead-priority-board";
 import { createBuild015Snapshot } from "@/lib/build015";
+import { createHotLeadResponseSnapshot } from "@/lib/hot-lead-response-engine";
 import { createRevenueTruthLayerSnapshot } from "@/lib/revenue-truth-layer";
 
 export const dynamic = "force-dynamic";
@@ -28,9 +30,10 @@ export default async function AiRevenueManagerPage() {
     redirect("/dashboard");
   }
 
-  const [snapshot, revenueTruth] = await Promise.all([
+  const [snapshot, revenueTruth, hotLeadSnapshot] = await Promise.all([
     createBuild015Snapshot(),
     createRevenueTruthLayerSnapshot(),
+    createHotLeadResponseSnapshot(),
   ]);
 
   return (
@@ -60,6 +63,8 @@ export default async function AiRevenueManagerPage() {
       <RevenueRiskCenter risks={snapshot.revenueRisks} />
 
       <RevenueTruthPanel snapshot={revenueTruth} />
+
+      <HotLeadPriorityBoard snapshot={hotLeadSnapshot} />
 
       <PlanRecoverySimulator scenarios={snapshot.recoveryScenarios} />
     </div>

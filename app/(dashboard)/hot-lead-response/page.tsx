@@ -1,17 +1,15 @@
-import { ListChecks } from "lucide-react";
+import { Flame } from "lucide-react";
 import { redirect } from "next/navigation";
 import { HotLeadPriorityBoard } from "@/components/data/hot-lead-priority-board";
-import { TaskExecutionPanel } from "@/components/data/task-execution-panel";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { createHotLeadResponseSnapshot } from "@/lib/hot-lead-response-engine";
 import { getPreviewDataModeLabel, isPreviewTestModeEnabled } from "@/lib/preview-test-mode";
 import { createClient } from "@/lib/supabase/server";
-import { createTaskExecutionSnapshot } from "@/lib/task-execution-engine";
 
 export const dynamic = "force-dynamic";
 
-export default async function TaskExecutionPage() {
+export default async function HotLeadResponsePage() {
   const previewTestMode = isPreviewTestModeEnabled();
   const previewDataMode = getPreviewDataModeLabel();
 
@@ -27,24 +25,19 @@ export default async function TaskExecutionPage() {
     redirect("/dashboard");
   }
 
-  const [snapshot, hotLeadSnapshot] = await Promise.all([
-    createTaskExecutionSnapshot({
-      previewMode: previewTestMode,
-    }),
-    createHotLeadResponseSnapshot({
-      previewMode: previewTestMode,
-    }),
-  ]);
+  const snapshot = await createHotLeadResponseSnapshot({
+    previewMode: previewTestMode,
+  });
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
       <PageHeader
-        title="Task Execution"
-        description="BUILD 034: warstwa egzekucji zadań z briefów dziennych, statusy wykonania i wpływ na forecast."
+        title="Hot Lead Response"
+        description="BUILD 035: natychmiastowa reakcja na leady premium, monitoring SLA i wpływ na forecast sprzedaży."
       >
         <div className="inline-flex items-center gap-2 rounded-lg border border-gold/30 bg-gold/10 px-3 py-1.5 text-xs text-gold">
-          <ListChecks className="h-3.5 w-3.5" />
-          EXECUTION MODE
+          <Flame className="h-3.5 w-3.5" />
+          SLA RESPONSE MODE
         </div>
       </PageHeader>
 
@@ -55,9 +48,7 @@ export default async function TaskExecutionPage() {
         </div>
       ) : null}
 
-      <TaskExecutionPanel snapshot={snapshot} />
-
-      <HotLeadPriorityBoard snapshot={hotLeadSnapshot} />
+      <HotLeadPriorityBoard snapshot={snapshot} />
     </div>
   );
 }
