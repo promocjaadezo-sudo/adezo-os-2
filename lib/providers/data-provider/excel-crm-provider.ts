@@ -1,4 +1,4 @@
-import { accessSync, constants, readdirSync } from "node:fs";
+import { accessSync, constants, existsSync, readdirSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import * as XLSX from "xlsx";
 import { calculateLeadScore, calculateLeadTemperature, calculateForecast } from "@/lib/operating-model/helpers";
@@ -260,6 +260,17 @@ export class ExcelCrmProvider implements DataProvider {
       return this.cache;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Nieznany błąd importu Excel CRM.";
+      const cwd = process.cwd();
+      const crmDirPath = join(cwd, "crm");
+      const crmDirExists = existsSync(crmDirPath);
+      const cwdEntries = (() => {
+        try {
+          return readdirSync(cwd).slice(0, 20).join(", ");
+        } catch {
+          return "n/a";
+        }
+      })();
+      const detailedMessage = `${message} | cwd=${cwd} | crmDirExists=${crmDirExists ? "yes" : "no"} | cwdEntries=${cwdEntries}`;
       const fallbackReason = classifyCrmFallbackReason(message);
       const fallbackReasonLabel =
         fallbackReason === "missing-file"
@@ -282,7 +293,7 @@ export class ExcelCrmProvider implements DataProvider {
           configured: false,
           syncState: "fallback-mock",
           message: `Excel CRM niedostępny (${fallbackReasonLabel}). Używam danych mock.`,
-          errors: [message],
+          errors: [detailedMessage],
         }),
       };
       return this.cache;
