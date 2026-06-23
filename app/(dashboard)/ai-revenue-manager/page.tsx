@@ -10,10 +10,14 @@ import { NextBestActionGenerator } from "@/components/build015/next-best-action-
 import { PlanRecoverySimulator } from "@/components/build015/plan-recovery-simulator";
 import { RevenueRiskCenter } from "@/components/build015/revenue-risk-center";
 import { LiveDataStatusPanel } from "@/components/data/live-data-status-panel";
+import { DataTrustScoreExplainer } from "@/components/data/data-trust-score-explainer";
+import { CrmCleanupPriorityPanel } from "@/components/data/crm-cleanup-priority-panel";
 import { RevenueTruthPanel } from "@/components/data/revenue-truth-panel";
 import { HotLeadPriorityBoard } from "@/components/data/hot-lead-priority-board";
 import { createBuild015Snapshot } from "@/lib/build015";
 import { createHotLeadResponseSnapshot } from "@/lib/hot-lead-response-engine";
+import { createCrmMissingFieldsReport } from "@/lib/crm-missing-fields-report";
+import { createDataTrustActionList } from "@/lib/data-trust-action-list";
 import { createLiveDataStatusSnapshot } from "@/lib/live-data-status";
 import { createRevenueTruthLayerSnapshot } from "@/lib/revenue-truth-layer";
 import { Badge } from "@/components/ui/badge";
@@ -34,11 +38,18 @@ export default async function AiRevenueManagerPage() {
     redirect("/dashboard");
   }
 
-  const [liveDataStatus, revenueTruth, hotLeadSnapshot] = await Promise.all([
+  const [liveDataStatus, revenueTruth, hotLeadSnapshot, crmMissingReport] = await Promise.all([
     createLiveDataStatusSnapshot(),
     createRevenueTruthLayerSnapshot(),
     createHotLeadResponseSnapshot(),
+    createCrmMissingFieldsReport(),
   ]);
+
+  const dataTrustActions = createDataTrustActionList({
+    live: liveDataStatus,
+    report: crmMissingReport,
+    targetScore: 70,
+  });
 
   const snapshot = await createBuild015Snapshot({ dataTrustScore: liveDataStatus.dataTrustScore });
 
@@ -73,6 +84,11 @@ export default async function AiRevenueManagerPage() {
       ) : null}
 
       <LiveDataStatusPanel snapshot={liveDataStatus} />
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <DataTrustScoreExplainer live={liveDataStatus} plan={dataTrustActions} />
+        <CrmCleanupPriorityPanel report={crmMissingReport} plan={dataTrustActions} />
+      </div>
 
       <DailyRevenueBriefGenerator brief={snapshot.brief} />
 
