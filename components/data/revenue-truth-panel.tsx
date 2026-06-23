@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
 import type { RevenueTruthSnapshot } from "@/lib/revenue-truth-layer";
 
-export function RevenueTruthPanel({ snapshot }: { snapshot: RevenueTruthSnapshot }) {
+export function RevenueTruthPanel({ snapshot, dataIncomplete = false }: { snapshot: RevenueTruthSnapshot; dataIncomplete?: boolean }) {
   const hasUnattributed = snapshot.unattributedLeads.length > 0;
 
   return (
@@ -15,29 +15,35 @@ export function RevenueTruthPanel({ snapshot }: { snapshot: RevenueTruthSnapshot
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <div className="rounded-lg border border-border/80 bg-background/40 p-3">
-            <p className="text-xs text-muted-foreground">Leady</p>
-            <p className="mt-1 font-semibold">{snapshot.summary.leads}</p>
-            <p className="text-xs text-muted-foreground">GA4 lead_count: {snapshot.summary.ga4LeadCount.toFixed(0)}</p>
+        {dataIncomplete ? (
+          <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-warning">
+            DATA INCOMPLETE
           </div>
-          <div className="rounded-lg border border-border/80 bg-background/40 p-3">
-            <p className="text-xs text-muted-foreground">Oferty / Sprzedaże</p>
-            <p className="mt-1 font-semibold">{snapshot.summary.offers} / {snapshot.summary.sales}</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="rounded-lg border border-border/80 bg-background/40 p-3">
+              <p className="text-xs text-muted-foreground">Leady</p>
+              <p className="mt-1 font-semibold">{snapshot.summary.leads}</p>
+              <p className="text-xs text-muted-foreground">GA4 lead_count: {snapshot.summary.ga4LeadCount.toFixed(0)}</p>
+            </div>
+            <div className="rounded-lg border border-border/80 bg-background/40 p-3">
+              <p className="text-xs text-muted-foreground">Oferty / Sprzedaże</p>
+              <p className="mt-1 font-semibold">{snapshot.summary.offers} / {snapshot.summary.sales}</p>
+            </div>
+            <div className="rounded-lg border border-border/80 bg-background/40 p-3">
+              <p className="text-xs text-muted-foreground">Przychód / Koszt</p>
+              <p className="mt-1 font-semibold">{formatCurrency(snapshot.summary.revenue)} / {formatCurrency(snapshot.summary.cost)}</p>
+            </div>
+            <div className="rounded-lg border border-border/80 bg-background/40 p-3">
+              <p className="text-xs text-muted-foreground">CPL / CPS</p>
+              <p className="mt-1 font-semibold">{formatCurrency(snapshot.summary.costPerLead)} / {formatCurrency(snapshot.summary.costPerSale)}</p>
+            </div>
+            <div className="rounded-lg border border-border/80 bg-background/40 p-3">
+              <p className="text-xs text-muted-foreground">ROAS / GAP do planu</p>
+              <p className="mt-1 font-semibold">{snapshot.summary.roas.toFixed(2)} / {formatCurrency(snapshot.summary.gapToPlan)}</p>
+            </div>
           </div>
-          <div className="rounded-lg border border-border/80 bg-background/40 p-3">
-            <p className="text-xs text-muted-foreground">Przychód / Koszt</p>
-            <p className="mt-1 font-semibold">{formatCurrency(snapshot.summary.revenue)} / {formatCurrency(snapshot.summary.cost)}</p>
-          </div>
-          <div className="rounded-lg border border-border/80 bg-background/40 p-3">
-            <p className="text-xs text-muted-foreground">CPL / CPS</p>
-            <p className="mt-1 font-semibold">{formatCurrency(snapshot.summary.costPerLead)} / {formatCurrency(snapshot.summary.costPerSale)}</p>
-          </div>
-          <div className="rounded-lg border border-border/80 bg-background/40 p-3">
-            <p className="text-xs text-muted-foreground">ROAS / GAP do planu</p>
-            <p className="mt-1 font-semibold">{snapshot.summary.roas.toFixed(2)} / {formatCurrency(snapshot.summary.gapToPlan)}</p>
-          </div>
-        </div>
+        )}
 
         <div className="grid gap-4 xl:grid-cols-2">
           <div className="rounded-lg border border-border/80 bg-background/40 p-3">

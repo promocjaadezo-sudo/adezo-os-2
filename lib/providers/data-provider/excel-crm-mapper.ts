@@ -204,7 +204,7 @@ export function mapExcelCrmRowsToStore(rows: ExcelCrmRow[], ga4: ExcelCrmGa4Cont
   const monthKey = new Date().toISOString().slice(0, 7);
   forecasts.push({
     monthKey,
-    revenuePlan: planMonthly > 0 ? planMonthly : Math.max(wonRevenue, 100000),
+    revenuePlan: rows.length > 0 ? (planMonthly > 0 ? planMonthly : wonRevenue) : 0,
   });
 
   return {

@@ -12,10 +12,12 @@ import { TopRevenueOpportunities } from "@/components/build020/top-revenue-oppor
 import { CeoFinalRecommendation } from "@/components/build020/ceo-final-recommendation";
 import { ProviderStatusPanel } from "@/components/data/provider-status-panel";
 import { CrmDataQualityPanel } from "@/components/data/crm-data-quality-panel";
+import { LiveDataStatusPanel } from "@/components/data/live-data-status-panel";
 import { RevenueTruthPanel } from "@/components/data/revenue-truth-panel";
 import { HotLeadPriorityBoard } from "@/components/data/hot-lead-priority-board";
 import { createBuild020Snapshot } from "@/lib/build020";
 import { createHotLeadResponseSnapshot } from "@/lib/hot-lead-response-engine";
+import { createLiveDataStatusSnapshot } from "@/lib/live-data-status";
 import { getProviderStatus } from "@/lib/providers/data-provider";
 
 export const dynamic = "force-dynamic";
@@ -33,10 +35,11 @@ export default async function ExecutiveDailyBriefPage() {
     redirect("/dashboard");
   }
 
-  const [snapshot, providerStatus, hotLeadSnapshot] = await Promise.all([
+  const [snapshot, providerStatus, hotLeadSnapshot, liveDataStatus] = await Promise.all([
     createBuild020Snapshot(),
     getProviderStatus(),
     createHotLeadResponseSnapshot(),
+    createLiveDataStatusSnapshot(),
   ]);
 
   return (
@@ -70,9 +73,11 @@ export default async function ExecutiveDailyBriefPage() {
 
       <ProviderStatusPanel status={providerStatus} />
 
+      <LiveDataStatusPanel snapshot={liveDataStatus} />
+
       <CrmDataQualityPanel status={providerStatus} kpis={snapshot.crmKpis} />
 
-      <RevenueTruthPanel snapshot={snapshot.revenueTruth} />
+      <RevenueTruthPanel snapshot={snapshot.revenueTruth} dataIncomplete={liveDataStatus.dataIncomplete} />
 
       <HotLeadPriorityBoard snapshot={hotLeadSnapshot} />
 

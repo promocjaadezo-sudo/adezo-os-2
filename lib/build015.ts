@@ -58,6 +58,8 @@ export interface PriorityLead {
 export interface Build015Snapshot {
   gap: RevenueGapAnalyzer;
   confidence: ForecastConfidenceEngine;
+  dataTrustScore: number;
+  forecastLowConfidence: boolean;
   brief: DailyRevenueBrief;
   recommendations: AiRecommendation[];
   nextActions: NextBestAction[];
@@ -71,8 +73,11 @@ export interface Build015Snapshot {
   }>;
 }
 
-export async function createBuild015Snapshot(): Promise<Build015Snapshot> {
+export async function createBuild015Snapshot(params?: { dataTrustScore?: number }): Promise<Build015Snapshot> {
   const [store, truth] = await Promise.all([getProviderStore(), createRevenueTruthLayerSnapshot()]);
+
+  const dataTrustScore = params?.dataTrustScore ?? 100;
+  const forecastLowConfidence = dataTrustScore < 70;
 
   const plan = truth.summary.plan;
   const sold = truth.summary.revenue;
@@ -103,9 +108,10 @@ export async function createBuild015Snapshot(): Promise<Build015Snapshot> {
   };
 
   const confidence: ForecastConfidenceEngine = {
-    confidencePct: 58,
-    riskLevel: "medium",
+    confidencePct: forecastLowConfidence ? 38 : 58,
+    riskLevel: forecastLowConfidence ? "high" : "medium",
     confidenceDrivers: [
+      ...(forecastLowConfidence ? [`FORECAST LOW CONFIDENCE: Data Trust Score ${dataTrustScore}%.`] : []),
       "Spadek HOT lead rate względem poprzedniego tygodnia.",
       `GA4 lead_count (${truth.summary.ga4LeadCount.toFixed(0)}) poniżej oczekiwań planu.`,
       `Konwersja lead->oferta ${leadToOfferRate.toFixed(1)}%, oferta->sprzedaż ${offerToSaleRate.toFixed(1)}%.`,
@@ -264,6 +270,8 @@ export async function createBuild015Snapshot(): Promise<Build015Snapshot> {
   return {
     gap: gapAnalyzer,
     confidence,
+    dataTrustScore,
+    forecastLowConfidence,
     brief,
     recommendations,
     nextActions,

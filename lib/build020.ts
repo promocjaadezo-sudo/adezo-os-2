@@ -5,6 +5,7 @@ import {
   getTopRevenueOpportunities,
 } from "@/lib/operating-model";
 import { createRevenueTruthLayerSnapshot, type RevenueTruthSnapshot } from "@/lib/revenue-truth-layer";
+import { createLiveDataStatusSnapshot } from "@/lib/live-data-status";
 
 export interface ExecutivePlanStatus {
   plan: number;
@@ -67,6 +68,13 @@ export interface Build020Snapshot {
     salesValue: number;
     forecast: number;
     ga4LeadCount7d: number;
+    dataIncomplete: boolean;
+  };
+  dataTrust: {
+    score: number;
+    crmCompleteness: number;
+    ga4Completeness: number;
+    adsCompleteness: number;
   };
   todayActions: CriticalAction[];
   revenueGap: RevenueGapSummary;
@@ -78,12 +86,13 @@ export interface Build020Snapshot {
 }
 
 export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
-  const [executiveNumbers, campaignRows, opportunities, dataSummary, truth] = await Promise.all([
+  const [executiveNumbers, campaignRows, opportunities, dataSummary, truth, liveData] = await Promise.all([
     getExecutiveNumbers(),
     getCampaignRoiDecisionRows(),
     getTopRevenueOpportunities(3),
     getDataCompletenessSummary(),
     createRevenueTruthLayerSnapshot(),
+    createLiveDataStatusSnapshot(),
   ]);
 
   const plan = truth.summary.plan || executiveNumbers.plan;
@@ -94,6 +103,7 @@ export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
   const leadsCount = truth.summary.leads;
   const offersCount = truth.summary.offers;
   const salesCount = truth.summary.sales;
+  const dataIncomplete = liveData.dataIncomplete;
 
   const worstCampaign = campaignRows
     .filter((row) => row.cps >= row.cost || row.sales === 0)
@@ -121,6 +131,13 @@ export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
       salesValue: sold,
       forecast,
       ga4LeadCount7d: truth.summary.ga4LeadCount,
+      dataIncomplete,
+    },
+    dataTrust: {
+      score: liveData.dataTrustScore,
+      crmCompleteness: liveData.completeness.crm,
+      ga4Completeness: liveData.completeness.ga4,
+      adsCompleteness: liveData.completeness.ads,
     },
     todayActions: [
       {
@@ -225,10 +242,13 @@ export async function createBuild020Snapshot(): Promise<Build020Snapshot> {
       decision: item.nextBestAction,
     })),
     finalRecommendation:
-      `CRM+GA4: leady ${leadsCount}, oferty ${offersCount}, sprzedaże ${salesCount}, ` +
-      `sprzedaż ${sold.toLocaleString("pl-PL")} zł, forecast ${forecast.toLocaleString("pl-PL")} zł. ` +
-      (gap > 0
-        ? `Brakuje ${gap.toLocaleString("pl-PL")} zł do planu — priorytet to domknięcia ofert i follow-up.`
-        : "Plan bez luki — utrzymuj pipeline i stabilny dopływ leadów."),
+      dataIncomplete
+        ? `DATA INCOMPLETE. Data Trust Score: ${liveData.dataTrustScore}%. Uzupełnij CRM i synchronizację źródeł przed decyzjami KPI.`
+        :
+            `CRM+GA4: leady ${leadsCount}, oferty ${offersCount}, sprzedaże ${salesCount}, ` +
+            `sprzedaż ${sold.toLocaleString("pl-PL")} zł, forecast ${forecast.toLocaleString("pl-PL")} zł. ` +
+            (gap > 0
+              ? `Brakuje ${gap.toLocaleString("pl-PL")} zł do planu — priorytet to domknięcia ofert i follow-up.`
+              : "Plan bez luki — utrzymuj pipeline i stabilny dopływ leadów."),
   };
 }

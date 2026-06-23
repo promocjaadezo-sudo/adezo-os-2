@@ -6,6 +6,7 @@ import { getOperatingStore } from "@/lib/operating-model/mock-store";
 import type { OperatingDataStore } from "@/lib/operating-model/types";
 import { createAnalyticsProvider } from "@/lib/providers/analytics-ads";
 import { deriveGa4LeadMetrics } from "@/lib/providers/analytics-ads/lead-metrics";
+import { classifyCrmFallbackReason } from "@/lib/data-source-priority-engine";
 import { mapExcelCrmRowsToStore, type ExcelCrmRow } from "./excel-crm-mapper";
 import { validateExcelCrmRows } from "./excel-crm-validator";
 import type { DataProvider, DataProviderStatus } from "./types";
@@ -220,8 +221,9 @@ export class ExcelCrmProvider implements DataProvider {
           configured: true,
           syncState: "ok",
           message:
-            `Excel CRM załadowany. Wiersze: ${mapped.diagnostics.rows}. ` +
-            `GA4 lead_count 7d: ${(ga4Context.leadCount7d || 0).toFixed(0)}.`,
+            mapped.diagnostics.rows > 0
+              ? `Excel CRM załadowany. Wiersze: ${mapped.diagnostics.rows}. GA4 lead_count 7d: ${(ga4Context.leadCount7d || 0).toFixed(0)}.`
+              : "DATA INCOMPLETE: Excel CRM załadowany, ale brak rekordów lead/oferta.",
           incompleteRows: validation.incompleteRows,
           incompleteFields: validation.incompleteFields,
           errors,
@@ -231,6 +233,14 @@ export class ExcelCrmProvider implements DataProvider {
       return this.cache;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Nieznany błąd importu Excel CRM.";
+      const fallbackReason = classifyCrmFallbackReason(message);
+      const fallbackReasonLabel =
+        fallbackReason === "missing-file"
+          ? "brak pliku"
+          : fallbackReason === "read-error"
+            ? "błąd odczytu"
+            : "CRM niedostępny";
+
       this.cache = {
         store: mockStore,
         structure: {
@@ -244,7 +254,7 @@ export class ExcelCrmProvider implements DataProvider {
           store: mockStore,
           configured: false,
           syncState: "fallback-mock",
-          message: "Excel CRM niedostępny. Używam danych mock.",
+          message: `Excel CRM niedostępny (${fallbackReasonLabel}). Używam danych mock.`,
           errors: [message],
         }),
       };

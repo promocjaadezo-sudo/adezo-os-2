@@ -9,11 +9,15 @@ import { AiRecommendationsEngine } from "@/components/build015/ai-recommendation
 import { NextBestActionGenerator } from "@/components/build015/next-best-action-generator";
 import { PlanRecoverySimulator } from "@/components/build015/plan-recovery-simulator";
 import { RevenueRiskCenter } from "@/components/build015/revenue-risk-center";
+import { LiveDataStatusPanel } from "@/components/data/live-data-status-panel";
 import { RevenueTruthPanel } from "@/components/data/revenue-truth-panel";
 import { HotLeadPriorityBoard } from "@/components/data/hot-lead-priority-board";
 import { createBuild015Snapshot } from "@/lib/build015";
 import { createHotLeadResponseSnapshot } from "@/lib/hot-lead-response-engine";
+import { createLiveDataStatusSnapshot } from "@/lib/live-data-status";
 import { createRevenueTruthLayerSnapshot } from "@/lib/revenue-truth-layer";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +34,13 @@ export default async function AiRevenueManagerPage() {
     redirect("/dashboard");
   }
 
-  const [snapshot, revenueTruth, hotLeadSnapshot] = await Promise.all([
-    createBuild015Snapshot(),
+  const [liveDataStatus, revenueTruth, hotLeadSnapshot] = await Promise.all([
+    createLiveDataStatusSnapshot(),
     createRevenueTruthLayerSnapshot(),
     createHotLeadResponseSnapshot(),
   ]);
+
+  const snapshot = await createBuild015Snapshot({ dataTrustScore: liveDataStatus.dataTrustScore });
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
@@ -53,6 +59,21 @@ export default async function AiRevenueManagerPage() {
         <ForecastConfidenceEnginePanel data={snapshot.confidence} />
       </div>
 
+      {snapshot.forecastLowConfidence ? (
+        <Card className="border-warning/40 bg-warning/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <Badge variant="warning">FORECAST LOW CONFIDENCE</Badge>
+              <p className="text-sm text-muted-foreground">
+                Data Trust Score {snapshot.dataTrustScore}% jest poniżej 70%. Decyzje forecastowe wymagają ręcznej walidacji.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <LiveDataStatusPanel snapshot={liveDataStatus} />
+
       <DailyRevenueBriefGenerator brief={snapshot.brief} />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -62,7 +83,7 @@ export default async function AiRevenueManagerPage() {
 
       <RevenueRiskCenter risks={snapshot.revenueRisks} />
 
-      <RevenueTruthPanel snapshot={revenueTruth} />
+      <RevenueTruthPanel snapshot={revenueTruth} dataIncomplete={liveDataStatus.dataIncomplete} />
 
       <HotLeadPriorityBoard snapshot={hotLeadSnapshot} />
 

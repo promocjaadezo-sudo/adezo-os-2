@@ -5,13 +5,10 @@ import { GoogleSheetsProvider } from "./google-sheets-provider";
 import { MockProvider } from "./mock-provider";
 import { SupabaseProvider } from "./supabase-provider";
 import type { DataProvider, DataProviderName, DataProviderStatus } from "./types";
+import { resolvePriorityProviderName } from "@/lib/data-source-priority-engine";
 
 function resolveProviderName(): DataProviderName {
-  const value = (process.env.ADEZO_DATA_PROVIDER || "mock").toLowerCase();
-  if (value === "csv" || value === "google-sheets" || value === "supabase" || value === "firebase" || value === "excel-crm") {
-    return value;
-  }
-  return "mock";
+  return resolvePriorityProviderName(process.env.ADEZO_DATA_PROVIDER);
 }
 
 function createProvider(name: DataProviderName): DataProvider {
