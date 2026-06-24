@@ -24,6 +24,18 @@ interface ImportResult {
   structure: WorkbookStructure;
 }
 
+interface IgnoredCrmRecord {
+  rowNumber: number;
+  reason: string;
+}
+
+interface CrmCleanupAudit {
+  totalRows: number;
+  realRows: number;
+  ignoredRows: number;
+  ignoredRecords: IgnoredCrmRecord[];
+}
+
 function normalize(value?: string): string {
   return (value || "").trim().toLowerCase();
 }
@@ -57,6 +69,40 @@ function rowText(row: unknown[], index: number): string | undefined {
   if (raw === null || raw === undefined) return undefined;
   const text = String(raw).trim();
   return text || undefined;
+}
+
+function hasText(value: unknown): boolean {
+  return String(value ?? "").trim() !== "";
+}
+
+function hasPositiveNumber(value: unknown): boolean {
+  if (value === null || value === undefined || value === "") return false;
+  if (typeof value === "number") return Number.isFinite(value) && value > 0;
+  const normalized = String(value).replace(/\s/g, "").replace(",", ".");
+  const numeric = Number(normalized);
+  return Number.isFinite(numeric) && numeric > 0;
+}
+
+function isRealLeadRow(input: {
+  klient?: string;
+  telefon?: string;
+  email?: string;
+  status?: string;
+  dataKontaktu?: string;
+  kwotaRaw: unknown;
+  notatka?: string;
+  source?: string;
+}): boolean {
+  return (
+    hasText(input.klient) ||
+    hasText(input.telefon) ||
+    hasText(input.email) ||
+    hasText(input.status) ||
+    hasText(input.dataKontaktu) ||
+    hasPositiveNumber(input.kwotaRaw) ||
+    hasText(input.notatka) ||
+    hasText(input.source)
+  );
 }
 
 function resolveCrmFilePath(): string {
@@ -96,9 +142,20 @@ function findColumnIndex(headers: string[], aliases: string[], fallback = -1): n
   return fallback;
 }
 
-function parseCrmRows(sheet: XLSX.WorkSheet): { rows: ExcelCrmRow[]; headers: string[] } {
+function parseCrmRows(sheet: XLSX.WorkSheet): { rows: ExcelCrmRow[]; headers: string[]; audit: CrmCleanupAudit } {
   const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, raw: true }) as unknown[][];
-  if (rawRows.length === 0) return { rows: [], headers: [] };
+  if (rawRows.length === 0) {
+    return {
+      rows: [],
+      headers: [],
+      audit: {
+        totalRows: 0,
+        realRows: 0,
+        ignoredRows: 0,
+        ignoredRecords: [],
+      },
+    };
+  }
 
   const headerRowIndex = findHeaderRow(rawRows);
   const headers = (rawRows[headerRowIndex] || []).map((cell, idx) => {
@@ -121,34 +178,74 @@ function parseCrmRows(sheet: XLSX.WorkSheet): { rows: ExcelCrmRow[]; headers: st
   const idxMedium = findColumnIndex(headers, ["MEDIUM"]);
   const idxCampaign = findColumnIndex(headers, ["CAMPAIGN", "KAMPANIA"]);
   const idxPlanMies = findColumnIndex(headers, ["PLAN MIESIECZNY", "PLAN MIESIĘCZNY", "PLAN"]);
+  const idxNotatka = findColumnIndex(headers, ["NOTATKA", "UWAGI", "KOMENTARZ"]);
 
   const rows: ExcelCrmRow[] = [];
+  const ignoredRecords: IgnoredCrmRecord[] = [];
+  let totalRows = 0;
   for (let rowIndex = headerRowIndex + 1; rowIndex < rawRows.length; rowIndex += 1) {
     const row = rawRows[rowIndex] || [];
+    totalRows += 1;
+
+    const klient = rowText(row, idxKlient);
+    const telefon = rowText(row, idxTelefon);
+    const email = rowText(row, idxEmail);
+    const status = rowText(row, idxStatus);
+    const dataKontaktu = parseDate(row[idxDataKont]);
+    const notatka = rowText(row, idxNotatka);
+    const source = rowText(row, idxSource);
+
+    const isReal = isRealLeadRow({
+      klient,
+      telefon,
+      email,
+      status,
+      dataKontaktu,
+      kwotaRaw: row[idxKwota],
+      notatka,
+      source,
+    });
+
+    if (!isReal) {
+      ignoredRecords.push({
+        rowNumber: rowIndex + 1,
+        reason: "Brak sygnałów realnego leada (klient/telefon/email/status/data kontaktu/wartość/notatka/źródło).",
+      });
+      continue;
+    }
+
     const nrOferty = rowText(row, idxNrOferty);
-    if (!nrOferty) continue;
 
     rows.push({
       rowNumber: rowIndex + 1,
-      dataKontaktu: parseDate(row[idxDataKont]),
-      klient: rowText(row, idxKlient),
-      telefon: rowText(row, idxTelefon),
-      email: rowText(row, idxEmail),
+      dataKontaktu,
+      klient,
+      telefon,
+      email,
       nrOferty,
       obsluga: rowText(row, idxObsluga),
       kwota: parseNumber(row[idxKwota]),
       szansa: parseNumber(row[idxSzansa]),
-      status: rowText(row, idxStatus),
+      status,
       dataOferty: parseDate(row[idxDataOferty]),
       wynikSprzedazy: rowText(row, idxWynikSprzedazy),
-      source: rowText(row, idxSource),
+      source,
       medium: rowText(row, idxMedium),
       campaign: rowText(row, idxCampaign),
       planMiesieczny: parseNumber(row[idxPlanMies]),
     });
   }
 
-  return { rows, headers };
+  return {
+    rows,
+    headers,
+    audit: {
+      totalRows,
+      realRows: rows.length,
+      ignoredRows: ignoredRecords.length,
+      ignoredRecords,
+    },
+  };
 }
 
 function enrichLeadScore(store: OperatingDataStore): OperatingDataStore {
@@ -199,7 +296,7 @@ export class ExcelCrmProvider implements DataProvider {
       }
 
       const ga4Context = await resolveGa4Context();
-      const { rows, headers } = parseCrmRows(crmSheet);
+      const { rows, headers, audit } = parseCrmRows(crmSheet);
       const validation = validateExcelCrmRows(rows);
       const mapped = mapExcelCrmRowsToStore(rows, ga4Context);
 
@@ -210,6 +307,13 @@ export class ExcelCrmProvider implements DataProvider {
 
       const store = enrichLeadScore(mapped.store);
       const errors = [...validation.warnings];
+      if (audit.ignoredRows > 0) {
+        errors.push(`CRM CLEANUP: zignorowano ${audit.ignoredRows} pustych/technicznych rekordów.`);
+        const ignoredPreview = audit.ignoredRecords.slice(0, 80).map((entry) => `R${entry.rowNumber}`).join(", ");
+        if (ignoredPreview) {
+          errors.push(`CRM CLEANUP ignored rows (preview): ${ignoredPreview}`);
+        }
+      }
 
       this.cache = {
         store,
@@ -226,7 +330,7 @@ export class ExcelCrmProvider implements DataProvider {
           syncState: "ok",
           message:
             mapped.diagnostics.rows > 0
-              ? `Excel CRM załadowany. Wiersze: ${mapped.diagnostics.rows}. GA4 lead_count 7d: ${(ga4Context.leadCount7d || 0).toFixed(0)}.`
+              ? `Excel CRM załadowany. Realne leady: ${audit.realRows}/${audit.totalRows}. GA4 lead_count 7d: ${(ga4Context.leadCount7d || 0).toFixed(0)}.`
               : "DATA INCOMPLETE: Excel CRM załadowany, ale brak rekordów lead/oferta.",
           incompleteRows: validation.incompleteRows,
           incompleteFields: validation.incompleteFields,

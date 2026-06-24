@@ -38,6 +38,7 @@ export interface ExcelCrmMappedResult {
   store: OperatingDataStore;
   diagnostics: {
     rows: number;
+    realRows: number;
     inferredSourceRows: number;
     inferredCampaignRows: number;
   };
@@ -122,8 +123,6 @@ export function mapExcelCrmRowsToStore(rows: ExcelCrmRow[], ga4: ExcelCrmGa4Cont
   let planMonthly = 0;
 
   for (const row of rows) {
-    if (!row.nrOferty) continue;
-
     const sourceRaw = row.source || ga4.defaultSource || "organic";
     const mediumRaw = row.medium || ga4.defaultMedium || "unknown";
     const campaignRaw = row.campaign || ga4.defaultCampaign || "GA4 Unassigned";
@@ -167,32 +166,34 @@ export function mapExcelCrmRowsToStore(rows: ExcelCrmRow[], ga4: ExcelCrmGa4Cont
       status: leadStatus,
     });
 
-    offers.push({
-      id: row.nrOferty,
-      leadId,
-      campaignId: campaign.id,
-      owner,
-      model: "Tirana",
-      value: row.kwota || 0,
-      status: offerStatus,
-      createdAt: toIsoDate(row.dataOferty || row.dataKontaktu),
-      sentAt: row.dataOferty ? toIsoDate(row.dataOferty) : undefined,
-      lastFollowupAt: row.dataKontaktu ? toIsoDate(row.dataKontaktu) : undefined,
-      winProbability: row.szansa != null ? Math.max(0, Math.min(1, row.szansa / 100)) : 0.5,
-      decisionReason: row.wynikSprzedazy || undefined,
-    });
-
-    if (offerStatus !== "won" && offerStatus !== "lost") {
-      magdaTasks.push({
-        id: `TSK-XLS-${taskSeq++}`,
+    if (row.nrOferty) {
+      offers.push({
+        id: row.nrOferty,
+        leadId,
+        campaignId: campaign.id,
         owner,
-        title: `Follow-up oferty ${row.nrOferty}`,
-        linkedLeadId: leadId,
-        linkedOfferId: row.nrOferty,
-        dueAt: toIsoDate(row.dataKontaktu),
-        priority: "high",
-        done: false,
+        model: "Tirana",
+        value: row.kwota || 0,
+        status: offerStatus,
+        createdAt: toIsoDate(row.dataOferty || row.dataKontaktu),
+        sentAt: row.dataOferty ? toIsoDate(row.dataOferty) : undefined,
+        lastFollowupAt: row.dataKontaktu ? toIsoDate(row.dataKontaktu) : undefined,
+        winProbability: row.szansa != null ? Math.max(0, Math.min(1, row.szansa / 100)) : 0.5,
+        decisionReason: row.wynikSprzedazy || undefined,
       });
+
+      if (offerStatus !== "won" && offerStatus !== "lost") {
+        magdaTasks.push({
+          id: `TSK-XLS-${taskSeq++}`,
+          owner,
+          title: `Follow-up oferty ${row.nrOferty}`,
+          linkedLeadId: leadId,
+          linkedOfferId: row.nrOferty,
+          dueAt: toIsoDate(row.dataKontaktu),
+          priority: "high",
+          done: false,
+        });
+      }
     }
 
     if ((row.planMiesieczny || 0) > planMonthly) {
@@ -218,6 +219,7 @@ export function mapExcelCrmRowsToStore(rows: ExcelCrmRow[], ga4: ExcelCrmGa4Cont
     },
     diagnostics: {
       rows: rows.length,
+      realRows: rows.length,
       inferredSourceRows,
       inferredCampaignRows,
     },
