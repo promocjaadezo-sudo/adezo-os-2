@@ -25,6 +25,7 @@ import { NAV_ITEMS } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 import { useRouter } from "next/navigation";
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -43,6 +44,11 @@ const ICON_MAP: Record<string, LucideIcon> = {
   ShieldAlert,
 };
 
+function hasRuntimeSupabaseEnv() {
+  const { url, anonKey } = getSupabaseEnv();
+  return Boolean(url && anonKey && !url.includes("your-project.supabase.co") && anonKey !== "your-anon-key");
+}
+
 export function Sidebar({ initialUserEmail }: { initialUserEmail?: string | null }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -50,6 +56,8 @@ export function Sidebar({ initialUserEmail }: { initialUserEmail?: string | null
 
   useEffect(() => {
     if (initialUserEmail) return;
+    if (!hasRuntimeSupabaseEnv()) return;
+
     async function fetchUser() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -59,6 +67,12 @@ export function Sidebar({ initialUserEmail }: { initialUserEmail?: string | null
   }, [initialUserEmail]);
 
   async function handleSignOut() {
+    if (!hasRuntimeSupabaseEnv()) {
+      router.push("/login");
+      router.refresh();
+      return;
+    }
+
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
