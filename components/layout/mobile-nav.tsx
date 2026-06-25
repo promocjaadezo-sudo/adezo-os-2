@@ -56,6 +56,11 @@ const ICON_MAP: Record<string, LucideIcon> = {
   ShieldAlert,
 };
 
+function hasRuntimeSupabaseEnv() {
+  const { url, anonKey } = getSupabaseEnv();
+  return Boolean(url && anonKey && !url.includes("your-project.supabase.co") && anonKey !== "your-anon-key");
+}
+
 export function MobileNav({ initialUserEmail }: { initialUserEmail?: string | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -63,9 +68,7 @@ export function MobileNav({ initialUserEmail }: { initialUserEmail?: string | nu
 
   useEffect(() => {
     if (initialUserEmail) return;
-
-    const { url, anonKey } = getSupabaseEnv();
-    if (!url || !anonKey) return;
+    if (!hasRuntimeSupabaseEnv()) return;
 
     async function fetchUser() {
       const supabase = createClient();
