@@ -44,6 +44,11 @@ const ICON_MAP: Record<string, LucideIcon> = {
   ShieldAlert,
 };
 
+function hasRuntimeSupabaseEnv() {
+  const { url, anonKey } = getSupabaseEnv();
+  return Boolean(url && anonKey && !url.includes("your-project.supabase.co") && anonKey !== "your-anon-key");
+}
+
 export function Sidebar({ initialUserEmail }: { initialUserEmail?: string | null }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -51,9 +56,7 @@ export function Sidebar({ initialUserEmail }: { initialUserEmail?: string | null
 
   useEffect(() => {
     if (initialUserEmail) return;
-
-    const { url, anonKey } = getSupabaseEnv();
-    if (!url || !anonKey) return;
+    if (!hasRuntimeSupabaseEnv()) return;
 
     async function fetchUser() {
       const supabase = createClient();
@@ -64,8 +67,7 @@ export function Sidebar({ initialUserEmail }: { initialUserEmail?: string | null
   }, [initialUserEmail]);
 
   async function handleSignOut() {
-    const { url, anonKey } = getSupabaseEnv();
-    if (!url || !anonKey) {
+    if (!hasRuntimeSupabaseEnv()) {
       router.push("/login");
       router.refresh();
       return;
