@@ -4,15 +4,19 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
 
 export const dynamic = "force-dynamic";
 
+function hasRuntimeSupabaseEnv() {
+  const { url, anonKey } = getSupabaseEnv();
+  return Boolean(url && anonKey && !url.includes("your-project.supabase.co") && anonKey !== "your-anon-key");
+}
+
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { url, anonKey } = getSupabaseEnv();
   let userEmail: string | null = null;
 
-  if (url && anonKey) {
+  if (hasRuntimeSupabaseEnv()) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     userEmail = user?.email || null;
