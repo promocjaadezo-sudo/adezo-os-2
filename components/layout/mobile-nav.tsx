@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 
 const MOBILE_QUICK_NAV = [
   { href: "/ceo-dashboard", icon: LayoutDashboard, label: "CEO" },
@@ -62,6 +63,10 @@ export function MobileNav({ initialUserEmail }: { initialUserEmail?: string | nu
 
   useEffect(() => {
     if (initialUserEmail) return;
+
+    const { url, anonKey } = getSupabaseEnv();
+    if (!url || !anonKey) return;
+
     async function fetchUser() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
