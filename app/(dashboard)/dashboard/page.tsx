@@ -8,6 +8,7 @@ import {
   Award,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 import { loadAdezoData, computeCeoScore, getOpenFollowups } from "@/lib/data";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { PageHeader } from "@/components/layout/page-header";
@@ -17,12 +18,44 @@ import { PerformanceBarChart } from "@/components/charts/performance-bar-chart";
 import { DataTable } from "@/components/data/data-table";
 import { StatusBadge, PriorityBadge, TemperatureBadge } from "@/components/data/status-badge";
 import { formatDateShort } from "@/lib/format";
-import type { Followup, Lead, Offer, Salesperson } from "@/lib/types";
+import type { AdezoData, Followup, Lead, Offer, Salesperson } from "@/lib/types";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
+
+function getEmptyAdezoData(): AdezoData {
+  return {
+    profile: null,
+    leads: [],
+    offers: [],
+    lost: [],
+    followups: [],
+    salespeople: [],
+    models: [],
+    marketing: [],
+    kpi: {
+      closed_sales: 0,
+      active_pipeline: 0,
+      weighted_pipeline: 0,
+      total_leads: 0,
+      total_offers: 0,
+      dead_leads: 0,
+    },
+    moneyLeak: {
+      lost_value: 0,
+      dead_leads_value: 0,
+      overdue_offers_value: 0,
+    },
+    salespersonPerformance: [],
+  };
+}
+
+function hasRuntimeSupabaseEnv() {
+  const { url, anonKey } = getSupabaseEnv();
+  return Boolean(url && anonKey && !url.includes("your-project.supabase.co") && anonKey !== "your-anon-key");
+}
 
 function getSalespersonName(email?: string): string {
   if (!email) return "Handlowiec";
@@ -36,12 +69,17 @@ function getSalespersonName(email?: string): string {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const email = user?.email || "";
+  let email = "";
+  let data = getEmptyAdezoData();
+
+  if (hasRuntimeSupabaseEnv()) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    email = user?.email || "";
+    data = await loadAdezoData(supabase);
+  }
   
   const isCeo = email.toLowerCase().endsWith("@adezo.pl") || email.toLowerCase().includes("ceo");
-  const data = await loadAdezoData(supabase);
 
   if (!isCeo) {
     const spName = getSalespersonName(email);
