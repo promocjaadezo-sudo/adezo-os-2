@@ -1,4 +1,5 @@
 import { getCampaignDerivedMetrics } from "@/lib/operating-model";
+import { createRevenueTruthLayerSnapshot } from "@/lib/revenue-truth-layer";
 
 export type CampaignModel = "Tirana" | "Astana" | "Chaga" | "Waleta";
 
@@ -249,19 +250,48 @@ function createAgencyPanel(campaigns: CampaignRecord[], roiBoard: CampaignRoiRow
 }
 
 export async function createBuild019Snapshot(): Promise<Build019Snapshot> {
-  const derivedMetrics = await getCampaignDerivedMetrics();
-  const campaigns: CampaignRecord[] = derivedMetrics.map((metrics) => ({
-    id: metrics.campaignId,
-    campaignName: metrics.campaignName,
-    platform: metrics.campaignName.toLowerCase().includes("google") ? "Google" : "Meta",
-    model: metrics.model,
-    cost: metrics.cost,
-    leads: metrics.leads,
-    hotLeads: metrics.hotLeads,
-    offers: metrics.offers,
-    sales: metrics.sales,
-    revenue: metrics.revenue,
-  }));
+  const [derivedMetrics, truth] = await Promise.all([
+    getCampaignDerivedMetrics(),
+    createRevenueTruthLayerSnapshot(),
+  ]);
+
+  const truthByName = new Map(
+    truth.rows.map((row) => [row.campaignName.toLowerCase(), row]),
+  );
+
+  const campaigns: CampaignRecord[] = derivedMetrics.map((metrics) => {
+    const truthRow = truthByName.get(metrics.campaignName.toLowerCase());
+    return {
+      id: metrics.campaignId,
+      campaignName: metrics.campaignName,
+      platform: (truthRow?.channel === "Google Ads" || metrics.campaignName.toLowerCase().includes("google")) ? "Google" : "Meta",
+      model: metrics.model,
+      cost: truthRow?.cost ?? metrics.cost,
+      leads: truthRow?.leads ?? metrics.leads,
+      hotLeads: Math.min(metrics.hotLeads, truthRow?.leads ?? metrics.leads),
+      offers: truthRow?.offers ?? metrics.offers,
+      sales: truthRow?.sales ?? metrics.sales,
+      revenue: truthRow?.revenue ?? metrics.revenue,
+    };
+  });
+
+  const known = new Set(campaigns.map((campaign) => campaign.campaignName.toLowerCase()));
+  truth.rows.forEach((row) => {
+    if (known.has(row.campaignName.toLowerCase())) return;
+
+    campaigns.push({
+      id: row.attributionKey,
+      campaignName: row.campaignName,
+      platform: row.channel === "Google Ads" ? "Google" : "Meta",
+      model: "Tirana",
+      cost: row.cost,
+      leads: row.leads,
+      hotLeads: Math.min(row.leads, row.sales),
+      offers: row.offers,
+      sales: row.sales,
+      revenue: row.revenue,
+    });
+  });
 
   const attribution: CampaignAttributionRow[] = campaigns.map((campaign) => ({
     campaignName: campaign.campaignName,
@@ -300,6 +330,7 @@ export async function createBuild019Snapshot(): Promise<Build019Snapshot> {
     monthlyPlanImpact:
       `Top kampania: ${topCampaign?.campaignName ?? "—"}. ` +
       `Łączny przychód przypisany do kampanii: ${pipelineRevenue.toLocaleString("pl-PL")} zł. ` +
+      `GA4 lead_count: ${truth.summary.ga4LeadCount.toFixed(0)}. ` +
       "Przesunięcie budżetu do kampanii z ROAS>5 zwiększa szansę dowiezienia planu miesiąca.",
   };
 }

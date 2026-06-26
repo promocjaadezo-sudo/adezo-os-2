@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import { isPreviewTestModeEnabled, isPreviewTestRoute } from "@/lib/preview-test-mode";
 
 export async function updateSession(request: NextRequest) {
   const { url: supabaseUrl, anonKey: supabaseKey } = getSupabaseEnv();
@@ -39,7 +40,8 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isLoginPage = request.nextUrl.pathname === "/login";
-  const isPublic = isLoginPage;
+  const allowPreviewTestRoute = isPreviewTestModeEnabled() && isPreviewTestRoute(request.nextUrl.pathname);
+  const isPublic = isLoginPage || allowPreviewTestRoute;
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

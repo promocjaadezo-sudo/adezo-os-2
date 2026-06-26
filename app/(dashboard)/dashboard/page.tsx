@@ -25,6 +25,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
 
+function normalizeText(value?: string | null): string {
+  return (value || "").toLowerCase();
+}
+
 function getEmptyAdezoData(): AdezoData {
   return {
     profile: null,
@@ -87,7 +91,7 @@ export default async function DashboardPage() {
     // Znajdź handlowca w bazie danych
     const activeSalesperson = data.salespeople.find((sp: Salesperson) => 
       (sp.email && sp.email.toLowerCase() === email.toLowerCase()) || 
-      (sp.name.toLowerCase() === spName.toLowerCase())
+      (normalizeText(sp.name) === normalizeText(spName))
     );
     const spId = activeSalesperson?.id;
 
@@ -109,8 +113,8 @@ export default async function DashboardPage() {
     );
 
     const aktywneOferty = mojeOferty.filter((o) => 
-      !o.status.toLowerCase().includes("wygr") && 
-      !o.status.toLowerCase().includes("przegr")
+      !normalizeText(o.status).includes("wygr") && 
+      !normalizeText(o.status).includes("przegr")
     );
 
     const sumaWartosciOfert = aktywneOferty.reduce((sum, o) => sum + Number(o.value || 0), 0);
@@ -391,13 +395,13 @@ export default async function DashboardPage() {
         />
       </KpiGrid>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <PipelineChart data={pipelineChartData} />
         <PerformanceBarChart data={data.salespersonPerformance} />
       </div>
 
       <DataTable
-        title="Nadchodzące followupy"
+        title="Najbliższe followupy"
         columns={followupColumns}
         data={openFollowups}
         emptyMessage="Brak otwartych followupów"

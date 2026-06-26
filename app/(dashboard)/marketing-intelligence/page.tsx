@@ -21,7 +21,7 @@ export default async function MarketingIntelligencePage() {
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
       <PageHeader
-        title="Marketing Intelligence"
+        title="Inteligencja Marketingu"
         description="Monitorowanie efektywności kampanii, źródeł wizyt i kosztów pozyskania klienta (CPL/ROAS) z Google Analytics 4, Google Ads oraz Meta Ads."
       />
 

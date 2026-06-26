@@ -11,7 +11,17 @@ import { DataDisciplineAlertModule } from "@/components/build020/data-discipline
 import { TopRevenueOpportunities } from "@/components/build020/top-revenue-opportunities";
 import { CeoFinalRecommendation } from "@/components/build020/ceo-final-recommendation";
 import { ProviderStatusPanel } from "@/components/data/provider-status-panel";
+import { CrmDataQualityPanel } from "@/components/data/crm-data-quality-panel";
+import { LiveDataStatusPanel } from "@/components/data/live-data-status-panel";
+import { DataTrustScoreExplainer } from "@/components/data/data-trust-score-explainer";
+import { CrmCleanupPriorityPanel } from "@/components/data/crm-cleanup-priority-panel";
+import { RevenueTruthPanel } from "@/components/data/revenue-truth-panel";
+import { HotLeadPriorityBoard } from "@/components/data/hot-lead-priority-board";
 import { createBuild020Snapshot } from "@/lib/build020";
+import { createHotLeadResponseSnapshot } from "@/lib/hot-lead-response-engine";
+import { createCrmMissingFieldsReport } from "@/lib/crm-missing-fields-report";
+import { createDataTrustActionList } from "@/lib/data-trust-action-list";
+import { createLiveDataStatusSnapshot } from "@/lib/live-data-status";
 import { getProviderStatus } from "@/lib/providers/data-provider";
 
 export const dynamic = "force-dynamic";
@@ -29,8 +39,19 @@ export default async function ExecutiveDailyBriefPage() {
     redirect("/dashboard");
   }
 
-  const snapshot = await createBuild020Snapshot();
-  const providerStatus = await getProviderStatus();
+  const [snapshot, providerStatus, hotLeadSnapshot, liveDataStatus, crmMissingReport] = await Promise.all([
+    createBuild020Snapshot(),
+    getProviderStatus(),
+    createHotLeadResponseSnapshot(),
+    createLiveDataStatusSnapshot(),
+    createCrmMissingFieldsReport(),
+  ]);
+
+  const dataTrustActions = createDataTrustActionList({
+    live: liveDataStatus,
+    report: crmMissingReport,
+    targetScore: 70,
+  });
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
@@ -62,6 +83,19 @@ export default async function ExecutiveDailyBriefPage() {
       </div>
 
       <ProviderStatusPanel status={providerStatus} />
+
+      <LiveDataStatusPanel snapshot={liveDataStatus} />
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <DataTrustScoreExplainer live={liveDataStatus} plan={dataTrustActions} />
+        <CrmCleanupPriorityPanel report={crmMissingReport} plan={dataTrustActions} />
+      </div>
+
+      <CrmDataQualityPanel status={providerStatus} kpis={snapshot.crmKpis} />
+
+      <RevenueTruthPanel snapshot={snapshot.revenueTruth} dataIncomplete={liveDataStatus.dataIncomplete} />
+
+      <HotLeadPriorityBoard snapshot={hotLeadSnapshot} />
 
       <CeoFinalRecommendation recommendation={snapshot.finalRecommendation} />
     </div>

@@ -11,6 +11,7 @@ import { BudgetRecommendationEngine } from "@/components/build012/budget-recomme
 import { CampaignActionCenter } from "@/components/build012/campaign-action-center";
 import { createBuild012Snapshot } from "@/lib/build012";
 import { formatCurrency, formatNumber } from "@/lib/format";
+import { getGa4LiveMetrics } from "@/lib/ga4-live";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,12 @@ export default async function MarketingCommandCenterPage() {
   }
 
   const snapshot = createBuild012Snapshot();
+  const ga4Live = await getGa4LiveMetrics();
+  const ga4StatusMessage = ga4Live.status === "ok" ? "" : `${ga4Live.status}: ${ga4Live.message}`;
+  const trackedLeads7d =
+    ga4Live.metrics.events7d.generate_lead.eventCount +
+    ga4Live.metrics.events7d.premium_form_submit.eventCount +
+    ga4Live.metrics.events7d.phone_call_lead.eventCount;
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
@@ -41,12 +48,50 @@ export default async function MarketingCommandCenterPage() {
         </div>
       </PageHeader>
 
+      {ga4Live.status !== "ok" && (
+        <div className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          GA4 Live status: {ga4StatusMessage}. KPI pokazują fallback z BUILD 012.
+        </div>
+      )}
+
       <KpiGrid className="lg:grid-cols-5">
-        <KpiCard title="Leady" value={formatNumber(snapshot.totals.leads)} subtitle="Wszystkie źródła" variant="gold" />
-        <KpiCard title="HOT leady" value={formatNumber(snapshot.totals.hotLeads)} subtitle="Lead quality" variant="warning" />
-        <KpiCard title="Oferty" value={formatNumber(snapshot.totals.offers)} subtitle="Lead → offer" variant="success" />
-        <KpiCard title="Sprzedaże" value={formatNumber(snapshot.totals.sales)} subtitle="Offer → sale" variant="success" />
-        <KpiCard title="Przychód" value={formatCurrency(snapshot.totals.revenue)} subtitle="Wpływ kampanii" variant="gold" />
+        {ga4Live.status === "ok" ? (
+          <>
+            <KpiCard
+              title="Active Users (Realtime)"
+              value={formatNumber(ga4Live.metrics.realtimeActiveUsers)}
+              subtitle="GA4 live"
+              variant="gold"
+            />
+            <KpiCard
+              title="Sessions 7d"
+              value={formatNumber(ga4Live.metrics.sessions7d)}
+              subtitle="Google Analytics 4"
+              variant="warning"
+            />
+            <KpiCard
+              title="Active Users 7d"
+              value={formatNumber(ga4Live.metrics.activeUsers7d)}
+              subtitle="Google Analytics 4"
+              variant="success"
+            />
+            <KpiCard
+              title="Conversions 7d"
+              value={formatNumber(ga4Live.metrics.conversions7d)}
+              subtitle="Google Analytics 4"
+              variant="success"
+            />
+            <KpiCard title="Lead Events 7d" value={formatNumber(trackedLeads7d)} subtitle="3 kluczowe eventy" variant="gold" />
+          </>
+        ) : (
+          <>
+            <KpiCard title="Leady" value={formatNumber(snapshot.totals.leads)} subtitle="Fallback BUILD 012" variant="gold" />
+            <KpiCard title="HOT leady" value={formatNumber(snapshot.totals.hotLeads)} subtitle="Fallback BUILD 012" variant="warning" />
+            <KpiCard title="Oferty" value={formatNumber(snapshot.totals.offers)} subtitle="Fallback BUILD 012" variant="success" />
+            <KpiCard title="Sprzedaże" value={formatNumber(snapshot.totals.sales)} subtitle="Fallback BUILD 012" variant="success" />
+            <KpiCard title="Przychód" value={formatCurrency(snapshot.totals.revenue)} subtitle="Fallback BUILD 012" variant="gold" />
+          </>
+        )}
       </KpiGrid>
 
       <CampaignPerformanceBoard campaigns={snapshot.campaigns} />

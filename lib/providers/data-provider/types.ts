@@ -1,6 +1,6 @@
 import type { OperatingDataStore } from "@/lib/operating-model/types";
 
-export type DataProviderName = "mock" | "csv" | "google-sheets" | "supabase" | "firebase";
+export type DataProviderName = "mock" | "csv" | "google-sheets" | "supabase" | "firebase" | "excel-crm";
 export type DataSyncState = "ok" | "fallback-mock" | "error";
 
 export interface ProviderRecordCounts {

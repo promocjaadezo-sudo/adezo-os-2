@@ -31,13 +31,13 @@ export default async function SalesCommandCenterBuild009Page() {
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
       <PageHeader
-        title="Sales Command Center"
+        title="Centrum Sprzedaży"
         description="BUILD 009: dzienny pulpit operacyjny sprzedaży z priorytetami i zadaniami dla Magd."
       >
         <Link href="/ceo-dashboard">
           <Button variant="outline" size="sm">
             <ArrowLeft className="h-4 w-4" />
-            CEO Dashboard
+            Pulpit CEO
           </Button>
         </Link>
       </PageHeader>

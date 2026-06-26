@@ -9,7 +9,9 @@ import { CostPerSaleEngine } from "@/components/build019/cost-per-sale-engine";
 import { ModelCampaignPerformance } from "@/components/build019/model-campaign-performance";
 import { BudgetShiftRecommendationEngine } from "@/components/build019/budget-shift-recommendation-engine";
 import { AgencyAccountabilityPanel } from "@/components/build019/agency-accountability-panel";
+import { RevenueTruthPanel } from "@/components/data/revenue-truth-panel";
 import { createBuild019Snapshot } from "@/lib/build019";
+import { createRevenueTruthLayerSnapshot } from "@/lib/revenue-truth-layer";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,10 @@ export default async function CampaignRoiEnginePage() {
     redirect("/dashboard");
   }
 
-  const snapshot = await createBuild019Snapshot();
+  const [snapshot, revenueTruth] = await Promise.all([
+    createBuild019Snapshot(),
+    createRevenueTruthLayerSnapshot(),
+  ]);
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
@@ -60,6 +65,8 @@ export default async function CampaignRoiEnginePage() {
         <BudgetShiftRecommendationEngine items={snapshot.budgetShift} />
         <AgencyAccountabilityPanel items={snapshot.agencyPanel} monthlyPlanImpact={snapshot.monthlyPlanImpact} />
       </div>
+
+      <RevenueTruthPanel snapshot={revenueTruth} />
     </div>
   );
 }

@@ -35,9 +35,9 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
 
 const MOBILE_QUICK_NAV = [
   { href: "/ceo-dashboard", icon: LayoutDashboard, label: "CEO" },
-  { href: "/sales-command-center", icon: CalendarClock, label: "Command" },
+  { href: "/sales-command-center", icon: CalendarClock, label: "Sprzedaż" },
   { href: "/leads", icon: Users, label: "Leady" },
-  { href: "/followups", icon: CalendarClock, label: "Follow" },
+  { href: "/followups", icon: CalendarClock, label: "Followupy" },
 ];
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -83,12 +83,12 @@ export function MobileNav({ initialUserEmail }: { initialUserEmail?: string | nu
     ? NAV_ITEMS
     : NAV_ITEMS.filter((item) => item.href === "/dashboard").map((item) => ({
         ...item,
-        title: "Magda Desk",
+        title: "Panel Magdy",
       }));
 
   const filteredQuickNav = isCeo
     ? MOBILE_QUICK_NAV
-    : [{ href: "/dashboard", icon: LayoutDashboard, label: "Magda Desk" }];
+    : [{ href: "/dashboard", icon: LayoutDashboard, label: "Panel" }];
 
   return (
     <>

@@ -1,0 +1,17 @@
+# Large local data and docs not needed for Preview runtime
+crm/**
+!crm/
+!crm/ADEZO_OS_2_0_BUILD034K_CRM_CLEANUP_FINAL_NEW.xlsx
+Księgi Marki ADEZO Europe 2030/
+scripts/
+Code.gs
+NASZE_MODELE_PREMIUM_SPEC.md
+build-output.log
+server.log
+
+# Local build and dependencies
+.next/
+node_modules/
+
+# VCS
+.git/

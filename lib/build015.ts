@@ -1,3 +1,6 @@
+import { getProviderStore } from "@/lib/providers/data-provider";
+import { createRevenueTruthLayerSnapshot } from "@/lib/revenue-truth-layer";
+
 export interface RevenueGapAnalyzer {
   plan: number;
   sold: number;
@@ -55,6 +58,8 @@ export interface PriorityLead {
 export interface Build015Snapshot {
   gap: RevenueGapAnalyzer;
   confidence: ForecastConfidenceEngine;
+  dataTrustScore: number;
+  forecastLowConfidence: boolean;
   brief: DailyRevenueBrief;
   recommendations: AiRecommendation[];
   nextActions: NextBestAction[];
@@ -68,12 +73,27 @@ export interface Build015Snapshot {
   }>;
 }
 
-export function createBuild015Snapshot(): Build015Snapshot {
-  const plan = 400000;
-  const sold = 235000;
-  const forecast = 348000;
-  const gap = Math.max(0, plan - forecast);
+export async function createBuild015Snapshot(params?: { dataTrustScore?: number }): Promise<Build015Snapshot> {
+  const [store, truth] = await Promise.all([getProviderStore(), createRevenueTruthLayerSnapshot()]);
+
+  const dataTrustScore = params?.dataTrustScore ?? 100;
+  const forecastLowConfidence = dataTrustScore < 70;
+
+  const plan = truth.summary.plan;
+  const sold = truth.summary.revenue;
+  const forecast = Math.max(sold, plan - truth.summary.gapToPlan);
+  const gap = truth.summary.gapToPlan;
   const willDeliverPlan = forecast >= plan;
+
+  const leadCount = truth.summary.leads;
+  const offerCount = truth.summary.offers;
+  const salesCount = truth.summary.sales;
+  const pipelineValue = store.offers
+    .filter((offer) => offer.status !== "won" && offer.status !== "lost")
+    .reduce((sum, offer) => sum + offer.value, 0);
+
+  const leadToOfferRate = leadCount > 0 ? (offerCount / leadCount) * 100 : 0;
+  const offerToSaleRate = offerCount > 0 ? (salesCount / offerCount) * 100 : 0;
 
   const gapAnalyzer: RevenueGapAnalyzer = {
     plan,
@@ -81,17 +101,20 @@ export function createBuild015Snapshot(): Build015Snapshot {
     forecast,
     gap,
     willDeliverPlan,
-    primaryCause: "Za mało HOT leadów.",
-    missingWhat: "Brakuje HOT leadów, pomiarów i follow-upów domykających.",
+    primaryCause: "Konwersja lead->oferta lub oferta->sprzedaż poniżej celu.",
+    missingWhat:
+      `Lead->Offer: ${leadToOfferRate.toFixed(1)}%, Offer->Sale: ${offerToSaleRate.toFixed(1)}%, ` +
+      `Pipeline: ${pipelineValue.toLocaleString("pl-PL")} zł, luka do planu: ${gap.toLocaleString("pl-PL")} zł.`,
   };
 
   const confidence: ForecastConfidenceEngine = {
-    confidencePct: 58,
-    riskLevel: "medium",
+    confidencePct: forecastLowConfidence ? 38 : 58,
+    riskLevel: forecastLowConfidence ? "high" : "medium",
     confidenceDrivers: [
+      ...(forecastLowConfidence ? [`FORECAST LOW CONFIDENCE: Data Trust Score ${dataTrustScore}%.`] : []),
       "Spadek HOT lead rate względem poprzedniego tygodnia.",
-      "Za mało pomiarów do leadów premium.",
-      "Część ofert czeka na follow-up > 3 dni.",
+      `GA4 lead_count (${truth.summary.ga4LeadCount.toFixed(0)}) poniżej oczekiwań planu.`,
+      `Konwersja lead->oferta ${leadToOfferRate.toFixed(1)}%, oferta->sprzedaż ${offerToSaleRate.toFixed(1)}%.`,
     ],
   };
 
@@ -101,9 +124,9 @@ export function createBuild015Snapshot(): Build015Snapshot {
       ? "Dowieziemy plan miesiąca przy utrzymaniu bieżącego tempa."
       : "Nie dowieziemy planu bez natychmiastowych działań sprzedażowo-marketingowych.",
     whyNot: [
-      "Za mało HOT leadów.",
-      "Za mało pomiarów.",
-      "Za mało follow-upów.",
+      `Leady->oferty: ${leadToOfferRate.toFixed(1)}%`,
+      `Oferty->sprzedaże: ${offerToSaleRate.toFixed(1)}%`,
+      `Pipeline aktywny: ${pipelineValue.toLocaleString("pl-PL")} zł`,
     ],
   };
 
@@ -247,6 +270,8 @@ export function createBuild015Snapshot(): Build015Snapshot {
   return {
     gap: gapAnalyzer,
     confidence,
+    dataTrustScore,
+    forecastLowConfidence,
     brief,
     recommendations,
     nextActions,
