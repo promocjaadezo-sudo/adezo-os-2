@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 
 const MOBILE_QUICK_NAV = [
   { href: "/ceo-dashboard", icon: LayoutDashboard, label: "CEO" },
@@ -55,6 +56,11 @@ const ICON_MAP: Record<string, LucideIcon> = {
   ShieldAlert,
 };
 
+function hasRuntimeSupabaseEnv() {
+  const { url, anonKey } = getSupabaseEnv();
+  return Boolean(url && anonKey && !url.includes("your-project.supabase.co") && anonKey !== "your-anon-key");
+}
+
 export function MobileNav({ initialUserEmail }: { initialUserEmail?: string | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -62,6 +68,8 @@ export function MobileNav({ initialUserEmail }: { initialUserEmail?: string | nu
 
   useEffect(() => {
     if (initialUserEmail) return;
+    if (!hasRuntimeSupabaseEnv()) return;
+
     async function fetchUser() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
