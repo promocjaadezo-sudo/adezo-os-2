@@ -27,6 +27,8 @@ export const dynamic = "force-dynamic";
 
 function normalizeText(value?: string | null): string {
   return (value || "").toLowerCase();
+}
+
 function getEmptyAdezoData(): AdezoData {
   return {
     profile: null,
@@ -393,13 +395,13 @@ export default async function DashboardPage() {
         />
       </KpiGrid>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <PipelineChart data={pipelineChartData} />
         <PerformanceBarChart data={data.salespersonPerformance} />
       </div>
 
       <DataTable
-        title="Nadchodzące followupy"
+        title="Najbliższe followupy"
         columns={followupColumns}
         data={openFollowups}
         emptyMessage="Brak otwartych followupów"
