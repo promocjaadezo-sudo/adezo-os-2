@@ -1,6 +1,10 @@
 import { resolveGoogleAuthConfig } from "./google-auth-config";
 import type { CredentialsMode } from "./credentials-mode-switch";
 
+export function normalizePrivateKey(raw: string): string {
+  return raw.replace(/\\n/g, "\n").trim();
+}
+
 export interface AnalyticsAdsConnectorConfig {
   useRealApis: boolean;
   credentialsMode: CredentialsMode;
@@ -36,7 +40,7 @@ export function resolveAnalyticsAdsConnectorConfig(): AnalyticsAdsConnectorConfi
     ga4ServiceAccountEmail,
     ga4CredentialsPath: (process.env.GOOGLE_APPLICATION_CREDENTIALS || "").trim(),
     ga4ClientEmail: (process.env.GOOGLE_CLIENT_EMAIL || ga4ServiceAccountEmail).trim(),
-    ga4PrivateKey: (process.env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n").trim(),
+    ga4PrivateKey: normalizePrivateKey(process.env.GOOGLE_PRIVATE_KEY || ""),
     googleAdsCustomerId: (process.env.GOOGLE_ADS_CUSTOMER_ID || process.env.ADEZO_GOOGLE_ADS_CUSTOMER_ID || "").trim(),
     googleAdsDeveloperToken: (process.env.GOOGLE_ADS_DEVELOPER_TOKEN || process.env.ADEZO_GOOGLE_ADS_DEVELOPER_TOKEN || "").trim(),
     googleAdsClientId: (process.env.GOOGLE_ADS_CLIENT_ID || "").trim(),
