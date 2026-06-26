@@ -39,9 +39,11 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isLoginPage = request.nextUrl.pathname === "/login";
-  const allowPreviewTestRoute = isPreviewTestModeEnabled() && isPreviewTestRoute(request.nextUrl.pathname);
-  const isPublic = isLoginPage || allowPreviewTestRoute;
+  const pathname = request.nextUrl.pathname;
+  const isLoginPage = pathname === "/login";
+  const isIntegrationDiagnosticApi = pathname.startsWith("/api/integrations/");
+  const allowPreviewTestRoute = isPreviewTestModeEnabled() && isPreviewTestRoute(pathname);
+  const isPublic = isLoginPage || isIntegrationDiagnosticApi || allowPreviewTestRoute;
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
